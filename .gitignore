@@ -48,6 +48,10 @@ __pycache__/
 venv/
 env/
 ENV/
+
+# Sensitive credentials and tokens
+token.json
+client_secret.json
 build_env/
 
 client_secret.json
