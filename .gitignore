@@ -1,0 +1,53 @@
+.env
+__pycache__/
+build/
+distr/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+*.log
+
+# Сборки PyInstaller
+build/
+dist/
+*.spec
+
+# Файлы проекта
+.env
+*.db
+*.sqlite
+*.sqlite3
+
+# Логи
+logs/
+*.log
+
+# Сессии
+session/
+*.session
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Виртуальное окружение
+venv/
+env/
+ENV/
+build_env/
+
+client_secret.json
