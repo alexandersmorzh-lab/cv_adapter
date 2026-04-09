@@ -1,89 +1,185 @@
 """
 main.py — точка входа приложения CV Adapter
 """
+import logging
 import sys
 import time
 import traceback
+from pathlib import Path
+
+import gspread
 
 import config
 import sheets
 import llm
+import analyzer
+import resume_adapter
+
+
+def _setup_io_and_logging() -> None:
+    """Построчный вывод и при DEBUG — сообщения с временем (чтобы в терминале было видно прогресс)."""
+    if config.DEBUG:
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format="%(asctime)s  %(message)s",
+            datefmt="%H:%M:%S",
+            force=True,
+        )
+    else:
+        logging.basicConfig(level=logging.WARNING, force=True)
+
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(line_buffering=True)
+            except (OSError, AttributeError, ValueError):
+                pass
+
+    # Запросы Google Sheets / httpx иначе засыпают консоль при DEBUG=1
+    if config.DEBUG and not config.DEBUG_HTTP:
+        for name in (
+            "urllib3",
+            "urllib3.connectionpool",
+            "httpx",
+            "httpcore",
+            "google.auth.transport.requests",
+        ):
+            logging.getLogger(name).setLevel(logging.WARNING)
+
+    log = logging.getLogger(__name__)
+    log.debug(
+        "Старт: cwd=%s script=%s frozen=%s DEBUG=%s DEBUG_HTTP=%s PAUSE_ON_EXIT=%s",
+        Path.cwd(),
+        Path(__file__).resolve(),
+        getattr(sys, "frozen", False),
+        config.DEBUG,
+        config.DEBUG_HTTP,
+        config.PAUSE_ON_EXIT,
+    )
 
 
 def main():
-    print("=" * 60)
-    print("  CV Adapter — адаптация резюме под вакансии")
-    print("=" * 60)
+    _setup_io_and_logging()
+    print("=" * 60, flush=True)
+    print("  CV Adapter — адаптация резюме под вакансии", flush=True)
+    print("=" * 60, flush=True)
+
+    # Определяем режим работы из аргументов командной строки
+    mode = _get_mode()
 
     # 1. Проверяем обязательные настройки
     _check_config()
 
     # 2. Авторизация в Google
-    print("\n[1/4] Подключение к Google Sheets...")
+    print("\n[*] Подключение к Google Sheets...", flush=True)
     try:
         client = sheets.authenticate()
-        print("      ✓ Авторизация успешна")
+        print("    ✓ Авторизация успешна", flush=True)
     except FileNotFoundError as e:
         _fatal(str(e))
     except Exception as e:
         _fatal(f"Ошибка авторизации Google: {e}")
 
     # 3. Читаем базовое резюме
-    print("[2/4] Загрузка базового резюме (лист 'Master CV')...")
+    print("[*] Загрузка базового резюме (лист 'Master CV')...", flush=True)
     try:
         base_cv = sheets.get_base_cv(client)
         if not base_cv.strip():
             _fatal("Лист 'Master CV' пуст. Добавьте базовое резюме.")
-        print(f"      ✓ Резюме загружено ({len(base_cv)} символов)")
+        print(f"    ✓ Резюме загружено ({len(base_cv)} символов)", flush=True)
     except Exception as e:
         _fatal(f"Ошибка чтения листа Master CV: {e}")
 
-    # 4. Читаем вакансии для обработки
-    print("[3/4] Поиск вакансий для обработки (лист 'Tracker')...")
+    # 4. Выполняем операцию в зависимости от режима
+    if mode == "analyze":
+        _run_analyzer(client, base_cv)
+    elif mode == "adapt":
+        _run_adapter(client, base_cv)
+    elif mode == "all":
+        _run_analyzer(client, base_cv)
+        _run_adapter(client, base_cv)
+
+
+def _get_mode() -> str:
+    """Определяет режим работы из аргументов командной строки или по умолчанию."""
+    # Если есть аргументы, используем первый как режим
+    if len(sys.argv) > 1:
+        arg = sys.argv[1].lower()
+        if arg in ("analyze", "adapt", "all"):
+            return arg
+        print(f"⚠ Неизвестный режим: {arg}", flush=True)
+        print("Допустимые значения: analyze | adapt | all", flush=True)
+    
+    # По умолчанию: analyze
+    return "analyze"
+
+
+def _run_analyzer(client: gspread.Client, base_cv: str):
+    """Запускает анализатор вакансий из Search DataBase."""
+    print("\n[1/2] Analyzer: обработка листа 'Search DataBase' и синхронизация с Tracker...", flush=True)
     try:
-        worksheet, rows, col_indices, headers = sheets.get_tracker_rows(client)
+        analyzed_ok, analyzed_total, added_to_tracker = analyzer.run_analyzer_search_database(
+            client=client, base_cv=base_cv
+        )
+    except ValueError as e:
+        _fatal(str(e))
+    except gspread.WorksheetNotFound as e:
+        title = str(e)
+        _fatal(
+            f"Лист «{title}» не найден в Google Таблице. "
+            "Проверьте имена листов в документе и переменные в .env "
+            "(SHEET_SEARCH_DATABASE, SHEET_WRONG_PHRASES, SHEET_ADDITIONAL_FILTER, SHEET_TRACKER)."
+        )
+    except Exception as e:
+        _fatal(f"Ошибка Analyzer: {e}")
+
+    if analyzed_total == 0:
+        print(
+            "      ℹ Analyzer: нет строк в Search DataBase (Description заполнен, SummaryScoring пуст).",
+            flush=True,
+        )
+    else:
+        if analyzed_ok == analyzed_total:
+            print(f"    ✓ Analyzer: обработано строк: {analyzed_ok}/{analyzed_total}", flush=True)
+        else:
+            print(
+                f"    ⚠ Analyzer: полностью обработано {analyzed_ok} из {analyzed_total}; "
+                "по остальным смотрите сообщения ✗ выше.",
+                flush=True,
+            )
+        print(f"    ℹ Добавлено в Tracker: {added_to_tracker} строк", flush=True)
+
+
+def _run_adapter(client: gspread.Client, base_cv: str):
+    """Запускает адаптацию резюме для строк из Tracker."""
+    print("\n[2/2] Resume Adapter: создание адаптированных резюме...", flush=True)
+    try:
+        processed_ok, processed_total = resume_adapter.run_resume_adapter(
+            client=client,
+            base_cv=base_cv,
+            delay_sec=2.0
+        )
     except ValueError as e:
         _fatal(str(e))
     except Exception as e:
-        _fatal(f"Ошибка чтения листа Tracker: {e}")
+        _fatal(f"Ошибка Resume Adapter: {e}")
 
-    if not rows:
-        print("      ℹ Нет строк для обработки.")
-        print("        (Нужны строки: Description заполнен, Adapted CV — пуст)")
-        _pause_and_exit(0)
+    if processed_total == 0:
+        print("    ℹ Resume Adapter: нет строк для обработки (все резюме уже созданы).", flush=True)
+    else:
+        if processed_ok == processed_total:
+            print(f"    ✓ Resume Adapter: обработано резюме: {processed_ok}/{processed_total}", flush=True)
+        else:
+            print(
+                f"    ⚠ Resume Adapter: успешно создано {processed_ok} из {processed_total}; "
+                "по остальным смотрите сообщения ✗ выше.",
+                flush=True,
+            )
 
-    print(f"      ✓ Найдено вакансий для обработки: {len(rows)}")
-
-    # 5. Генерация и запись
-    print(f"[4/4] Генерация адаптированных резюме (LLM: {config.LLM_PROVIDER})...\n")
-    ok = 0
-    errors = 0
-
-    for idx, row in enumerate(rows, start=1):
-        row_num = row["row_num"]
-        description = row["description"]
-        preview = description[:60].replace("\n", " ")
-        print(f"  [{idx}/{len(rows)}] Строка {row_num}: {preview}...")
-
-        try:
-            adapted_cv = llm.generate_adapted_cv(base_cv, description)
-            sheets.write_adapted_cv(worksheet, row_num, col_indices["adapted_cv"], adapted_cv)
-            print(f"         ✓ Записано ({len(adapted_cv)} символов)")
-            ok += 1
-        except Exception as e:
-            print(f"         ✗ Ошибка: {e}")
-            errors += 1
-
-        # Пауза между запросами (Groq free tier: 12000 TPM)
-        if idx < len(rows):
-            print("         ⏳ Пауза 15 сек (rate limit)...")
-            time.sleep(15)
-
-    # Итог
-    print(f"\n{'=' * 60}")
-    print(f"  Готово! Обработано: {ok} ✓   Ошибок: {errors} ✗")
-    print(f"{'=' * 60}")
-    _pause_and_exit(0 if errors == 0 else 1)
+    print(f"\n{'=' * 60}", flush=True)
+    print(f"  ✓ Готово!", flush=True)
+    print(f"{'=' * 60}", flush=True)
+    _pause_and_exit(0)
 
 
 def _check_config():
@@ -102,20 +198,22 @@ def _check_config():
         errors.append("GROQ_API_KEY не задан в .env")
 
     if errors:
-        print("\n⚠ Ошибки конфигурации (.env):")
+        print("\n⚠ Ошибки конфигурации (.env):", flush=True)
         for e in errors:
-            print(f"  • {e}")
+            print(f"  • {e}", flush=True)
         _pause_and_exit(1)
 
 
 def _fatal(message: str):
-    print(f"\n✗ КРИТИЧЕСКАЯ ОШИБКА:\n  {message}")
+    print(f"\n✗ КРИТИЧЕСКАЯ ОШИБКА:\n  {message}", flush=True)
     _pause_and_exit(1)
 
 
 def _pause_and_exit(code: int = 0):
     """При запуске как EXE ждёт нажатия Enter перед закрытием."""
-    print("\nНажмите Enter для выхода...")
+    if not config.PAUSE_ON_EXIT:
+        sys.exit(code)
+    print("\nНажмите Enter для выхода...", flush=True)
     try:
         input()
     except (EOFError, KeyboardInterrupt):
@@ -127,9 +225,9 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\n\nПрервано пользователем.")
+        print("\n\nПрервано пользователем.", flush=True)
         sys.exit(0)
     except Exception:
-        print("\n✗ Неожиданная ошибка:")
+        print("\n✗ Неожиданная ошибка:", flush=True)
         traceback.print_exc()
         _pause_and_exit(1)

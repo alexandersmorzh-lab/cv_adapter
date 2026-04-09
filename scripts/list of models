@@ -1,0 +1,6 @@
+from cerebras.cloud.sdk import Cerebras
+
+client = Cerebras(api_key="csk-5wnx28xde33yw2cnjwvn4e8kntmv2key5w26c3feff8958dc")
+models = client.models.list()
+for model in models.data:
+    print(f"- {model.id}") # Сравните вывод с вашим списком

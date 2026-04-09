@@ -6,11 +6,95 @@
 
 ## Быстрый старт
 
-### Что нужно в папке рядом с CVAdapter.exe:
+### Что нужно в папке рядом с исполняемым файлом:
 ```
-CVAdapter.exe
+CVAdapter.exe (или CVAdapter.app)
 .env                  ← ваши настройки
 client_secret.json    ← OAuth-ключ от Google
+system_prompt.txt     ← системный промпт для AI
+```
+
+### Запуск:
+- **Windows**: `CVAdapter.exe` двойным кликом
+- **macOS**: `CVAdapter.app` двойным кликом
+- **Linux**: `./CVAdapter` в терминале
+
+GUI откроется с кнопками для запуска задач и окном логов.
+
+---
+
+## Сборка исполняемого файла
+
+### Требования:
+- Python 3.8+
+- pip install -r requirements.txt
+- pip install pyinstaller
+
+### Сборка:
+```bash
+# Для текущей ОС (автоопределение)
+python build.py
+
+# Для Windows
+python build.py --windows
+
+# Для macOS
+python build.py --macos
+
+# Для Linux
+python build.py --linux
+```
+
+Результат: `dist/CVAdapter.exe` (или `.app`, или без расширения)
+
+### Сборка macOS через GitHub Actions
+
+Если вы работаете на Windows, но нужен `CVAdapter.app`, используйте workflow:
+
+1. Откройте репозиторий на GitHub
+2. Перейдите во вкладку **Actions**
+3. Запустите workflow **Build macOS app** вручную
+4. При желании укажите `release_tag` вида `v1.0.0`, чтобы ZIP автоматически прикрепился к GitHub Release
+
+Результат сборки:
+- artifact `CVAdapter-macOS.zip` во вкладке Actions
+- или asset в GitHub Release, если указан `release_tag`
+
+В архив попадают:
+- `CVAdapter.app`
+- `.env.example`
+- `system_prompt.txt`
+- инструкция `MACOS_SETUP.md`
+
+> Первая версия CI-сборки не подписана Apple certificate, поэтому на macOS может понадобиться запуск через **Right click → Open**.
+
+---
+
+## Использование GUI
+
+1. Запустите `CVAdapter.exe` двойным кликом
+2. Откроется окно с кнопками:
+   - **Анализ вакансий** — оценка вакансий и отбор подходящих
+   - **Адаптация резюме** — генерация персонализированных резюме
+   - **Анализ + Адаптация** — полный цикл
+   - **Очистить лог** — очистка окна логов
+
+3. Логи выполнения отображаются в текстовом поле
+4. Во время выполнения кнопки заблокированы
+
+---
+
+## Консольный режим (для разработчиков)
+
+```bash
+# Анализ вакансий
+python main.py analyze
+
+# Адаптация резюме
+python main.py adapt
+
+# Полный цикл
+python main.py all
 ```
 
 ---
@@ -32,13 +116,19 @@ client_secret.json    ← OAuth-ключ от Google
 
 ---
 
-## Шаг 2 — Настройка Gemini API
+## Шаг 2 — Настройка AI API
 
+### Gemini (рекомендуется, бесплатно):
 1. Откройте [Google AI Studio](https://aistudio.google.com/app/apikey)
 2. Нажмите **Create API key**
 3. Скопируйте ключ в `.env` → `GEMINI_API_KEY=...`
 
-Бесплатная квота Gemini 1.5 Flash: **1 500 запросов/день**, 15 RPM.
+Бесплатная квота: **1 500 запросов/день**, 15 RPM.
+
+### Другие провайдеры:
+- **OpenAI**: `OPENAI_API_KEY=...`
+- **Groq**: `GROQ_API_KEY=...`
+- **Cerebras**: `CEREBRAS_API_KEY=...`
 
 ---
 

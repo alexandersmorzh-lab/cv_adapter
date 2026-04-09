@@ -52,6 +52,7 @@ ENV/
 # Sensitive credentials and tokens
 token.json
 client_secret.json
+client_secret.json_old
 build_env/
 
 client_secret.json

@@ -1,0 +1,73 @@
+name: Build macOS app
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Optional Git tag / Release tag (for example: v1.0.0)"
+        required: false
+        type: string
+      release_name:
+        description: "Optional GitHub Release title"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build macOS app
+        run: python build.py --macos
+
+      - name: Prepare release bundle
+        shell: bash
+        run: |
+          rm -rf release
+          mkdir -p release/CVAdapter-macOS
+          cp -R dist/CVAdapter.app release/CVAdapter-macOS/
+          cp .env.example release/CVAdapter-macOS/.env.example
+          cp system_prompt.txt release/CVAdapter-macOS/system_prompt.txt
+          cp README.md release/CVAdapter-macOS/README.md
+
+          if [ -f docs/MACOS_SETUP.md ]; then
+            cp docs/MACOS_SETUP.md release/CVAdapter-macOS/MACOS_SETUP.md
+          fi
+
+          ditto -c -k --sequesterRsrc --keepParent release/CVAdapter-macOS release/CVAdapter-macOS.zip
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CVAdapter-macOS
+          path: release/CVAdapter-macOS.zip
+          if-no-files-found: error
+
+      - name: Publish GitHub Release asset
+        if: ${{ github.event.inputs.release_tag != '' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.release_tag }}
+          name: ${{ github.event.inputs.release_name || github.event.inputs.release_tag }}
+          files: release/CVAdapter-macOS.zip
+          generate_release_notes: true
+          draft: false
+          prerelease: false
