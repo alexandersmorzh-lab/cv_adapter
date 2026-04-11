@@ -14,6 +14,7 @@ import sheets
 import llm
 import analyzer
 import resume_adapter
+import linkedin_search
 
 
 def _setup_io_and_logging() -> None:
@@ -68,7 +69,7 @@ def main():
     mode = _get_mode()
 
     # 1. Проверяем обязательные настройки
-    _check_config()
+    _check_config(mode)
 
     # 2. Авторизация в Google
     print("\n[*] Подключение к Google Sheets...", flush=True)
@@ -79,6 +80,11 @@ def main():
         _fatal(str(e))
     except Exception as e:
         _fatal(f"Ошибка авторизации Google: {e}")
+
+    # LinkedIn import не зависит от Master CV / LLM
+    if mode == "linkedin":
+        _run_linkedin(client)
+        return
 
     # 3. Читаем базовое резюме
     print("[*] Загрузка базового резюме (лист 'Master CV')...", flush=True)
@@ -105,13 +111,38 @@ def _get_mode() -> str:
     # Если есть аргументы, используем первый как режим
     if len(sys.argv) > 1:
         arg = sys.argv[1].lower()
-        if arg in ("analyze", "adapt", "all"):
+        if arg in ("linkedin", "analyze", "adapt", "all"):
             return arg
         print(f"⚠ Неизвестный режим: {arg}", flush=True)
-        print("Допустимые значения: analyze | adapt | all", flush=True)
+        print("Допустимые значения: linkedin | analyze | adapt | all", flush=True)
     
     # По умолчанию: analyze
     return "analyze"
+
+
+def _run_linkedin(client: gspread.Client):
+    """Запускает импорт вакансий из LinkedIn в Search DataBase."""
+    print("\n[0/2] LinkedIn Search: импорт вакансий в лист 'Search DataBase'...", flush=True)
+    try:
+        found_total, written, skipped = linkedin_search.run_linkedin_search_import(client=client)
+    except ValueError as e:
+        _fatal(str(e))
+    except Exception as e:
+        _fatal(f"Ошибка LinkedIn Search: {e}")
+
+    if found_total == 0:
+        print("    ℹ LinkedIn Search: новых вакансий не найдено или импорт не был выполнен.", flush=True)
+    else:
+        print(
+            f"    ✓ LinkedIn Search: найдено {found_total}, добавлено {written}, пропущено {skipped}",
+            flush=True,
+        )
+
+    print("    ℹ Следующий шаг: запустите 'Анализ вакансий' или 'Анализ + Адаптация'.", flush=True)
+    print(f"\n{'=' * 60}", flush=True)
+    print("  ✓ Готово!", flush=True)
+    print(f"{'=' * 60}", flush=True)
+    _pause_and_exit(0)
 
 
 def _run_analyzer(client: gspread.Client, base_cv: str):
@@ -182,20 +213,21 @@ def _run_adapter(client: gspread.Client, base_cv: str):
     _pause_and_exit(0)
 
 
-def _check_config():
-    """Проверяет наличие обязательных настроек."""
+def _check_config(mode: str):
+    """Проверяет наличие обязательных настроек для выбранного режима."""
     errors = []
 
     if not config.SPREADSHEET_ID:
         errors.append("SPREADSHEET_ID не задан в .env")
 
-    provider = config.LLM_PROVIDER.lower()
-    if provider == "gemini" and not config.GEMINI_API_KEY:
-        errors.append("GEMINI_API_KEY не задан в .env")
-    elif provider == "openai" and not config.OPENAI_API_KEY:
-        errors.append("OPENAI_API_KEY не задан в .env")
-    elif provider == "groq" and not config.GROQ_API_KEY:
-        errors.append("GROQ_API_KEY не задан в .env")
+    if mode in {"analyze", "adapt", "all"}:
+        provider = config.LLM_PROVIDER.lower()
+        if provider == "gemini" and not config.GEMINI_API_KEY:
+            errors.append("GEMINI_API_KEY не задан в .env")
+        elif provider == "openai" and not config.OPENAI_API_KEY:
+            errors.append("OPENAI_API_KEY не задан в .env")
+        elif provider == "groq" and not config.GROQ_API_KEY:
+            errors.append("GROQ_API_KEY не задан в .env")
 
     if errors:
         print("\n⚠ Ошибки конфигурации (.env):", flush=True)

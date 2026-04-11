@@ -74,12 +74,14 @@ class CVAdapterGUI:
         button_frame.pack(fill=tk.X, padx=10, pady=(10, 0))
 
         # Кнопки для задач
+        self.btn_linkedin = ttk.Button(button_frame, text="Поиск в LinkedIn", command=self.run_linkedin, style="Primary.TButton")
         self.btn_analyze = ttk.Button(button_frame, text="Анализ вакансий", command=self.run_analyze, style="Primary.TButton")
         self.btn_adapt = ttk.Button(button_frame, text="Адаптация резюме", command=self.run_adapt, style="Primary.TButton")
         self.btn_all = ttk.Button(button_frame, text="Анализ + Адаптация", command=self.run_all, style="Secondary.TButton")
         self.btn_cancel = ttk.Button(button_frame, text="Отмена", command=self.cancel_task, style="Danger.TButton")
         self.btn_clear = ttk.Button(button_frame, text="Очистить лог", command=self.clear_log, style="Secondary.TButton")
 
+        self.btn_linkedin.pack(side=tk.LEFT, padx=5)
         self.btn_analyze.pack(side=tk.LEFT, padx=5)
         self.btn_adapt.pack(side=tk.LEFT, padx=5)
         self.btn_all.pack(side=tk.LEFT, padx=5)
@@ -138,12 +140,12 @@ class CVAdapterGUI:
 
     def _update_button_states(self, running: bool):
         if running:
-            for button in (self.btn_analyze, self.btn_adapt, self.btn_all):
+            for button in (self.btn_linkedin, self.btn_analyze, self.btn_adapt, self.btn_all):
                 button.state(["disabled"])
             self.btn_cancel.state(["!disabled"])
             self.btn_clear.state(["disabled"])
         else:
-            for button in (self.btn_analyze, self.btn_adapt, self.btn_all):
+            for button in (self.btn_linkedin, self.btn_analyze, self.btn_adapt, self.btn_all):
                 button.state(["!disabled"])
             self.btn_cancel.state(["disabled"])
             self.btn_clear.state(["!disabled"])
@@ -172,8 +174,8 @@ class CVAdapterGUI:
         try:
             # Проверяем и проводим авторизацию Google, если нужно
             token_path = sheets.get_token_path()
-            self.log(f"[DEBUG] Token path: {token_path}")
-            self.log(f"[DEBUG] Token существует: {token_path.exists()}")
+            # self.log(f"[DEBUG] Token path: {token_path}")
+            # self.log(f"[DEBUG] Token существует: {token_path.exists()}")
 
             if not token_path.exists():
                 self.log("Проводим авторизацию Google...")
@@ -248,6 +250,9 @@ class CVAdapterGUI:
             self.is_running = False
             self._update_button_states(running=False)
             self.set_status("Готов к работе")
+
+    def run_linkedin(self):
+        self.run_task('linkedin')
 
     def run_analyze(self):
         self.run_task('analyze')

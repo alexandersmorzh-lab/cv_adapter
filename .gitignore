@@ -49,6 +49,12 @@ venv/
 env/
 ENV/
 
+vendor/
+Vendor/
+.chrome-debug-profile/
+__MACOSX/
+.DS_Store
+
 # Sensitive credentials and tokens
 token.json
 client_secret.json

@@ -1,0 +1,65 @@
+
+==================================================
+Запуск задачи: linkedin
+==================================================
+
+✓ Найден сохранённый token.json
+============================================================
+  CV Adapter — адаптация резюме под вакансии
+============================================================
+
+[*] Подключение к Google Sheets...
+    ✓ Авторизация успешна
+
+[0/2] LinkedIn Search: импорт вакансий в лист 'Search DataBase'...
+      • Активных поисков: 3; известных URL: 160; лимит: 60
+      • Debug browser не найден — запускаю автоматически...
+      • Запущен браузер: C:\Program Files\Google\Chrome\Application\chrome.exe
+      • Если это первый запуск, войдите в LinkedIn в открывшемся окне и повторите поиск.
+
+🔍 LinkedIn поиск: Project Manager
+   • Локация: Netherlands
+   • Период: последние 24 часа (r86400)
+   • Уровни: 3, 4
+   • Типы занятости: F, C
+   • Пагинация LinkedIn: start=0,25,50... это смещение результатов, а не число добавленных вакансий.
+   📄 Page 1 (start=0)
+   • LinkedIn вернул карточек на странице: 7
+      ✓ [1] Senior Projectleider Energievoorziening - GVB @ Jobster
+      ✓ [2] Projectleider waterveiligheid with verification @ Tetra Tech Europe
+      ✓ [3] Projectleider Installatietechniek @ HulstFlier Installatietechniek
+      ✓ [4] Assistent BIM Manager with verification @ Timber and Building Supplies Holland N.V
+      ✓ [5] Projectcoördinator Zuidasdoktunnel with verification @ Van Hattum en Blankevoort
+      ✓ [6] Projectleider Ecologie en Biodiversiteit @ WSP in Nederland
+      ✓ [7] Tech Project Manager Finance with verification @ Action
+   • Итого по странице: добавлено 7, пропущено дубликатов 0
+   📄 Page 2 (start=25)
+   ⚠ Карточки вакансий не найдены на странице.
+   ✅ Поиск завершён: 7 вакансий
+
+🔍 LinkedIn поиск: Product Owner
+   • Локация: Netherlands
+   • Период: последние 24 часа (r86400)
+   • Уровни: 3, 4
+   • Типы занятости: F, C
+   • Пагинация LinkedIn: start=0,25,50... это смещение результатов, а не число добавленных вакансий.
+   📄 Page 1 (start=0)
+   ⚠ Карточки вакансий не найдены на странице.
+   ✅ Поиск завершён: 0 вакансий
+
+🔍 LinkedIn поиск: Business Analyst
+   • Локация: Netherlands
+   • Период: последние 24 часа (r86400)
+   • Уровни: 3, 4
+   • Типы занятости: F, C
+   • Пагинация LinkedIn: start=0,25,50... это смещение результатов, а не число добавленных вакансий.
+   📄 Page 1 (start=0)
+   ⚠ Карточки вакансий не найдены на странице.
+   ✅ Поиск завершён: 0 вакансий
+    ✓ LinkedIn Search: найдено 7, добавлено 7, пропущено 0
+    ℹ Следующий шаг: запустите 'Анализ вакансий' или 'Анализ + Адаптация'.
+
+============================================================
+  ✓ Готово!
+============================================================
+✓ Задача выполнена успешно!

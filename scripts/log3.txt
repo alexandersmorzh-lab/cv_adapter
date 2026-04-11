@@ -1,0 +1,171 @@
+
+==================================================
+Запуск задачи: linkedin
+==================================================
+
+✓ Найден сохранённый token.json
+============================================================
+  CV Adapter — адаптация резюме под вакансии
+============================================================
+
+[*] Подключение к Google Sheets...
+    ✓ Авторизация успешна
+
+[0/2] LinkedIn Search: импорт вакансий в лист 'Search DataBase'...
+      • Активных поисков: 3; известных URL: 223; лимит: 60
+      • Debug browser уже запущен.
+
+📊 Распределение общего лимита по весам:
+   [1] Project Manager | вес=3 | стартовая квота=30
+   [2] Product Owner | вес=2 | стартовая квота=20
+   [3] Business Analyst | вес=1 | стартовая квота=10
+
+🔍 LinkedIn поиск: Project Manager
+   • Локация: Netherlands
+   • Период: последние 24 часа (r86400)
+   • Вес позиции: 3
+   • Квота на этот проход: до 30 вакансий
+   • Уровни: 3, 4
+   • Типы занятости: F, C
+   • Пагинация LinkedIn: start=0,25,50... это смещение результатов, а не число добавленных вакансий.
+   📄 Page 1 (start=0)
+   • LinkedIn вернул карточек на странице: 7 (selector: .job-card-container)
+      ✓ [1] Senior Projectleider werktuigbouwkundige installaties in Leiden @ Dosign
+      ✓ [2] Senior Projectleider team Projecten (Zwolle, NL) @ Booston.io
+      ✓ [3] Projectleider - Uitzendbureau.nl @ Jobster
+      ✓ [4] Associate Project Manager @ Magnit Global
+      ✓ [5] Projectleider @ WR.nl Solliciteren
+      ✓ [6] Brand Operations and Project Coordinator @ Grès et Delibaṣı
+      ✓ [7] Senior Projectleider IT with verification @ Ministerie van Defensie
+   • Итого по странице: добавлено 7, пропущено дубликатов 0
+   📄 Page 2 (start=25)
+   • LinkedIn вернул карточек на странице: 7 (selector: .job-card-container)
+      ✓ [8] Testmanager (Zwolle, NL) @ Booston.io
+      ✓ [9] Teamleider Programma Adviseurs Erasmus+ @ Jobster
+      ✓ [10] Projectmanager @ WR.nl Solliciteren
+      ✓ [11] Projectmedewerker (C-systemen) with verification @ Ministerie van Defensie
+      ✓ [12] DSO Expert / Projectleider @ All About Work
+      ✓ [13] Projectmanager -Infrastructurele projecten @ OverheidZZP
+      ✓ [14] Projectmanager Fysieke Leefomgeving @ EIFFEL Projects
+   • Итого по странице: добавлено 7, пропущено дубликатов 0
+   📄 Page 3 (start=50)
+   • LinkedIn вернул карточек на странице: 7 (selector: .job-card-container)
+      ✓ [15] Projectleider Ontwerp & Aanleg (Arnhem, NL) @ Booston.io
+      ✓ [16] Projectmedewerker Kwaliteit en Blijvend Leren @ Jobster
+      ✓ [17] Technisch Manager Drinkwater @ All About Work
+      ✓ [18] Projectleider Ruimtelijke Ontwikkeling @ OverheidZZP
+      ✓ [19] Projectmanager Fysieke Leefomgeving @ EIFFEL Projects
+   • Итого по странице: добавлено 5, пропущено дубликатов 2
+   📄 Page 4 (start=75)
+   • LinkedIn вернул карточек на странице: 7 (selector: .job-card-container)
+      ✓ [20] Senior Projectondersteuner Drinkwater - Jobbird.com @ Jobster
+      ✓ [21] Projectleider Kabels en Leidingen - Dordrecht @ Booston.io
+      ✓ [22] Senior Projectondersteuner (IPM-team) – Drinkwater @ All About Work
+      ✓ [23] Adviseur Contract -Project Over‑Bruggen WNZ B-Vaarwegen. @ OverheidZZP
+      ✓ [24] Projectmanager Fysieke Leefomgeving @ EIFFEL Projects
+   • Итого по странице: добавлено 5, пропущено дубликатов 2
+   📄 Page 5 (start=100)
+   • LinkedIn вернул карточек на странице: 7 (selector: .job-card-container)
+      ✓ [25] Werkvoorbereider - Uitzendbureau.nl @ Jobster
+      ✓ [26] Projectleider Infra - Zoetermeer @ Booston.io
+      ✓ [27] (Senior) Projectleider Realisatie Buitenruimte en civiele techniek @ All About Work
+      ✓ [28] Adviseur -Integrale Veiligheid @ OverheidZZP
+      ✓ [29] Projectmanager Fysieke Leefomgeving @ EIFFEL Projects
+   • Итого по странице: добавлено 5, пропущено дубликатов 2
+   📄 Page 6 (start=125)
+   • LinkedIn вернул карточек на странице: 7 (selector: .job-card-container)
+      ✓ [30] Projectleider Luchtkanalen (Regio Noord-Holland) @ Booston.io
+   • Итого по странице: добавлено 1, пропущено дубликатов 0
+   ✅ Поиск завершён: 30 вакансий
+
+🔍 LinkedIn поиск: Product Owner
+   • Локация: Netherlands
+   • Период: последние 24 часа (r86400)
+   • Вес позиции: 2
+   • Квота на этот проход: до 20 вакансий
+   • Уровни: 3, 4
+   • Типы занятости: F, C
+   • Пагинация LinkedIn: start=0,25,50... это смещение результатов, а не число добавленных вакансий.
+   📄 Page 1 (start=0)
+   • LinkedIn вернул карточек на странице: 7 (selector: .job-card-container)
+      ✓ [1] Product Owner @ Tech Rise
+      ✓ [2] Product Owner IT Platform Trein @ All About Work
+      ✓ [3] Product Owner MLOps @ All About Work
+   • Итого по странице: добавлено 3, пропущено дубликатов 4
+   📄 Page 2 (start=25)
+   ⚠ Карточки вакансий не найдены. Состояние: похоже, выдачу перекрывает баннер/попап | title='(5) Вакансии «Product Owner» в регионе Netherlands | LinkedIn' | url=https://www.linkedin.com/jobs/search/?f_E=3%2C4&f_JT=F%2CC&f_TPR=r86400&keywords=Product%20Owner&location=Netherlands&sortBy=DD&start=25
+   ✅ Поиск завершён: 3 вакансий
+   • 'Product Owner' использовал 3 из 20; возвращаю в общий пул 17.
+
+🔍 LinkedIn поиск: Business Analyst
+   • Локация: Netherlands
+   • Период: последние 24 часа (r86400)
+   • Вес позиции: 1
+   • Квота на этот проход: до 10 вакансий
+   • Уровни: 3, 4
+   • Типы занятости: F, C
+   • Пагинация LinkedIn: start=0,25,50... это смещение результатов, а не число добавленных вакансий.
+   📄 Page 1 (start=0)
+   • LinkedIn вернул карточек на странице: 7 (selector: .job-card-container)
+   • Итого по странице: добавлено 0, пропущено дубликатов 7
+   ℹ Новых вакансий на странице нет — завершаю этот поиск.
+   ✅ Поиск завершён: 0 вакансий
+   • 'Business Analyst' использовал 0 из 10; возвращаю в общий пул 10.
+
+🔄 Запускаю добор из общего пула: осталось 27 вакансий для перераспределения.
+   • Добор для 'Project Manager' (вес=3): ещё до 27 вакансий.
+
+🔍 LinkedIn поиск: Project Manager
+   • Локация: Netherlands
+   • Период: последние 24 часа (r86400)
+   • Вес позиции: 3
+   • Квота на этот проход: до 27 вакансий
+   • Уровни: 3, 4
+   • Типы занятости: F, C
+   • Пагинация LinkedIn: start=0,25,50... это смещение результатов, а не число добавленных вакансий.
+   📄 Page 1 (start=0)
+   • LinkedIn вернул карточек на странице: 7 (selector: .job-card-container)
+   • Итого по странице: добавлено 0, пропущено дубликатов 7
+   ℹ Новых вакансий на странице нет — завершаю этот поиск.
+   ✅ Поиск завершён: 0 вакансий
+   • Для 'Project Manager' дополнительных вакансий не найдено.
+   • Добор для 'Product Owner' (вес=2): ещё до 27 вакансий.
+
+🔍 LinkedIn поиск: Product Owner
+   • Локация: Netherlands
+   • Период: последние 24 часа (r86400)
+   • Вес позиции: 2
+   • Квота на этот проход: до 27 вакансий
+   • Уровни: 3, 4
+   • Типы занятости: F, C
+   • Пагинация LinkedIn: start=0,25,50... это смещение результатов, а не число добавленных вакансий.
+   📄 Page 1 (start=0)
+   • LinkedIn вернул карточек на странице: 7 (selector: .job-card-container)
+   • Итого по странице: добавлено 0, пропущено дубликатов 7
+   ℹ Новых вакансий на странице нет — завершаю этот поиск.
+   ✅ Поиск завершён: 0 вакансий
+   • Для 'Product Owner' дополнительных вакансий не найдено.
+   • Добор для 'Business Analyst' (вес=1): ещё до 27 вакансий.
+
+🔍 LinkedIn поиск: Business Analyst
+   • Локация: Netherlands
+   • Период: последние 24 часа (r86400)
+   • Вес позиции: 1
+   • Квота на этот проход: до 27 вакансий
+   • Уровни: 3, 4
+   • Типы занятости: F, C
+   • Пагинация LinkedIn: start=0,25,50... это смещение результатов, а не число добавленных вакансий.
+   📄 Page 1 (start=0)
+   • LinkedIn вернул карточек на странице: 7 (selector: .job-card-container)
+   • Итого по странице: добавлено 0, пропущено дубликатов 7
+   ℹ Новых вакансий на странице нет — завершаю этот поиск.
+   ✅ Поиск завершён: 0 вакансий
+   • Для 'Business Analyst' дополнительных вакансий не найдено.
+    ✓ LinkedIn Search: найдено 33, добавлено 33, пропущено 0
+    ℹ Следующий шаг: запустите 'Анализ вакансий' или 'Анализ + Адаптация'.
+
+============================================================
+  ✓ Готово!
+============================================================
+✓ Задача выполнена успешно!
+

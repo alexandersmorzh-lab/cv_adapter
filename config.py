@@ -58,6 +58,7 @@ SHEET_MASTER_CV: str = get("SHEET_MASTER_CV", "Master CV")
 SHEET_TRACKER: str = get("SHEET_TRACKER", "Tracker")
 SHEET_ADDITIONAL_FILTER: str = get("SHEET_ADDITIONAL_FILTER", "Additional Filter")
 SHEET_SEARCH_DATABASE: str = get("SHEET_SEARCH_DATABASE", "Search DataBase")
+SHEET_PRIMARY_FILTER: str = get("SHEET_PRIMARY_FILTER", "Primary Filter")
 SHEET_WRONG_PHRASES: str = get("SHEET_WRONG_PHRASES", "WrongPhrases")
 
 COL_URL: str = get("COL_URL", "URL")
@@ -88,6 +89,22 @@ ANALYZER_MAX_DESCRIPTION_CHARS: int = int(get("ANALYZER_MAX_DESCRIPTION_CHARS", 
 ANALYZER_RATE_LIMIT_SEC: int = int(get("ANALYZER_RATE_LIMIT_SEC", "15") or "15")
 # Подробный вывод формул Base/Additional/Summary и таблицы критериев в консоль
 ANALYZER_PRINT_SCORE_BREAKDOWN: bool = _env_bool("ANALYZER_PRINT_SCORE_BREAKDOWN", False)
+
+# LinkedIn Search (первая стадия импорта вакансий)
+LINKEDIN_CHROME_DEBUG_URL: str = get("LINKEDIN_CHROME_DEBUG_URL", "http://localhost:9222")
+LINKEDIN_AUTO_START_BROWSER: bool = _env_bool("LINKEDIN_AUTO_START_BROWSER", True)
+LINKEDIN_BROWSER_PATH: str = get("LINKEDIN_BROWSER_PATH", "")
+LINKEDIN_BROWSER_USER_DATA_DIR: str = get(
+    "LINKEDIN_BROWSER_USER_DATA_DIR",
+    str(BASE_DIR / ".chrome-debug-profile"),
+)
+LINKEDIN_BROWSER_START_URL: str = get("LINKEDIN_BROWSER_START_URL", "https://www.linkedin.com/feed/")
+LINKEDIN_SCRAPE_CAP: int = int(get("LINKEDIN_SCRAPE_CAP", "60") or "60")
+LINKEDIN_PAGE_LOAD_WAIT_MS: int = int(get("LINKEDIN_PAGE_LOAD_WAIT_MS", "4000") or "4000")
+LINKEDIN_NAVIGATION_TIMEOUT_MS: int = int(get("LINKEDIN_NAVIGATION_TIMEOUT_MS", "45000") or "45000")
+LINKEDIN_SCROLL_ROUNDS: int = int(get("LINKEDIN_SCROLL_ROUNDS", "4") or "4")
+LINKEDIN_CARD_DELAY_SEC: float = float(get("LINKEDIN_CARD_DELAY_SEC", "0.8") or "0.8")
+LINKEDIN_PAGE_DELAY_SEC: float = float(get("LINKEDIN_PAGE_DELAY_SEC", "2.0") or "2.0")
 
 # OAuth
 CLIENT_SECRET_FILE: str = get("CLIENT_SECRET_FILE", "client_secret.json")

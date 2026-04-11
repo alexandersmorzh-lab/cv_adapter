@@ -64,15 +64,21 @@ def _load_saved_credentials(token_path: Path) -> Optional[Credentials]:
     except Exception as e:
         _log.debug("OAuth: не удалось прочитать token.json: %s", e)
         return None
-    if not creds or not creds.valid:
-        _log.debug("OAuth: credentials не валидны или истекли")
+    if not creds:
         return None
     if not _credentials_have_required_scopes(creds):
         _log.debug("OAuth: token имеет недостаточные scopes, требуется переавторизация")
         return None
-    return creds
-    if not _credentials_have_required_scopes(creds):
+
+    # Просроченный токен с refresh_token — нормальный кейс, его нужно обновить, а не удалять.
+    if creds.expired and creds.refresh_token:
+        _log.debug("OAuth: credentials истекли, но доступны для refresh")
+        return creds
+
+    if not creds.valid:
+        _log.debug("OAuth: credentials невалидны и не могут быть обновлены")
         return None
+
     return creds
 
 
@@ -135,8 +141,7 @@ def _get_credentials() -> Credentials:
     """Получить credentials - используются для гуглапи."""
     global _credentials
     if _credentials is None:
-        base = _get_base_dir()
-        token_path = base / config.TOKEN_FILE
+        token_path = get_token_path()
         creds = _load_saved_credentials(token_path)
         if creds is None and token_path.exists():
             _log.debug("OAuth: token.json не подходит, удаляем и требуем новую авторизацию")
