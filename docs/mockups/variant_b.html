@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Variant B — Paper Pro</title>
+<style>
+/* =====================================
+   VARIANT B: PAPER PRO
+   Background: #faf7f2 (warm cream)
+   Cards: #ffffff with warm tint
+   Text primary: #1c1917 (stone-900)
+   Text muted: #78716c (stone-500)
+   Accent: #2563eb (blue-600) 
+   Hero: #1d4ed8 (blue-700)
+   Border: #e7e5e4 (stone-200)
+   Titlebar: #f5f0e8 (warm)
+   ===================================== */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #f0ebe0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  min-height: 100vh;
+}
+.nav-bar {
+  display: flex; align-items: center; gap: 16px; margin-bottom: 20px;
+  color: #78716c; font-size: 13px;
+}
+.nav-bar a { color: #2563eb; text-decoration: none; font-size: 13px; }
+.nav-bar a:hover { text-decoration: underline; }
+.badge {
+  background: #fef3c7; color: #92400e; font-size: 11px; font-weight: 700;
+  letter-spacing: .06em; padding: 4px 10px; border-radius: 20px; text-transform: uppercase;
+}
+
+.window {
+  width: 900px;
+  background: #faf7f2;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06);
+  overflow: hidden;
+  border: 1px solid #d6d0c8;
+}
+
+.titlebar {
+  background: #f0ebe0;
+  padding: 10px 16px;
+  display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid #d6d0c8;
+  user-select: none;
+}
+.tb-dot { width: 12px; height: 12px; border-radius: 50%; }
+.tb-red { background: #ef4444; }
+.tb-yellow { background: #f59e0b; }
+.tb-green { background: #22c55e; }
+.tb-title { flex: 1; text-align: center; font-size: 12px; color: #78716c; font-weight: 500; }
+
+.content-area {
+  padding: 16px 20px 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Card — warm white with subtle warm shadow */
+.card {
+  background: #fffefb;
+  border: 1px solid #e7e5e4;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(120,100,60,0.07), 0 1px 2px rgba(120,100,60,0.04);
+  overflow: hidden;
+}
+.card-header {
+  padding: 12px 16px 0 16px;
+  border-bottom: 1px solid #f5f0e8;
+}
+.card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1c1917;
+  letter-spacing: 0.02em;
+  padding-bottom: 10px;
+}
+.card-subtitle {
+  font-size: 11px;
+  color: #a8a29e;
+  margin-top: -8px;
+  padding-bottom: 10px;
+}
+.card-body {
+  padding: 14px 16px 16px 16px;
+}
+
+.btn-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.btn {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  text-align: center;
+  cursor: pointer;
+  border: none;
+  transition: background 0.12s, box-shadow 0.12s;
+  line-height: 1.4;
+}
+.btn-primary {
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(37,99,235,0.22);
+}
+.btn-primary:hover { background: #1d4ed8; }
+
+.btn-hero {
+  background: #1d4ed8;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 12px 16px;
+  border-radius: 6px;
+  width: 100%;
+  box-shadow: 0 2px 8px rgba(29,78,216,0.28);
+  margin-bottom: 10px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+.btn-hero:hover { background: #1e40af; }
+
+.btn-active {
+  background: #1e40af !important;
+  color: #bfdbfe !important;
+  cursor: default;
+}
+
+.aux-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.aux-hint { font-size: 11px; color: #a8a29e; }
+.aux-buttons { display: flex; gap: 6px; }
+.btn-aux {
+  background: transparent;
+  color: #78716c;
+  border: 1px solid #d6d3d1;
+  padding: 5px 12px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+}
+.btn-aux:hover { background: #f5f0e8; color: #44403c; }
+
+.log-area {
+  background: #fdf9f4;
+  border: 1px solid #e7e5e4;
+  border-radius: 5px;
+  padding: 10px 12px;
+  height: 226px;
+  font-family: 'Consolas', 'Cascadia Code', monospace;
+  font-size: 12px;
+  color: #44403c;
+  line-height: 1.6;
+  overflow-y: auto;
+}
+.log-ok { color: #15803d; }
+.log-info { color: #2563eb; }
+.log-warn { color: #b45309; }
+
+.statusbar {
+  background: #f0ebe0;
+  border-top: 1px solid #d6d0c8;
+  padding: 7px 16px;
+  font-size: 12px;
+  color: #57534e;
+  font-weight: 600;
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 14px;
+}
+.status-dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; }
+
+.palette-ref {
+  margin-top: 20px;
+  background: #fffefb;
+  border: 1px solid #e7e5e4;
+  border-radius: 8px;
+  padding: 16px 20px;
+  width: 900px;
+}
+.palette-ref h3 { font-size: 12px; font-weight: 700; color: #78716c; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 12px; }
+.swatches { display: flex; gap: 10px; flex-wrap: wrap; }
+.swatch { display: flex; align-items: center; gap: 8px; }
+.sw-box { width: 32px; height: 32px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.08); }
+.sw-label { font-size: 11px; color: #78716c; }
+.sw-code { font-size: 10px; color: #a8a29e; font-family: monospace; }
+</style>
+</head>
+<body>
+
+<div class="nav-bar">
+  <a href="index.html">← Все варианты</a>
+  <span>›</span>
+  <span class="badge">B — Paper Pro</span>
+  <span>Тёплая бумага · уют</span>
+</div>
+
+<div class="window">
+  <div class="titlebar">
+    <div class="tb-dot tb-red"></div>
+    <div class="tb-dot tb-yellow"></div>
+    <div class="tb-dot tb-green"></div>
+    <div class="tb-title">CV Adapter</div>
+  </div>
+
+  <div class="content-area">
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Сценарии</div>
+        <div class="card-subtitle">Выберите действие для запуска</div>
+      </div>
+      <div class="card-body">
+        <div class="btn-grid">
+          <button class="btn btn-primary">Поиск</button>
+          <button class="btn btn-primary btn-active">● Анализ  (выполняется…)</button>
+          <button class="btn btn-primary" disabled style="opacity:.45;cursor:default">Адаптация</button>
+        </div>
+        <button class="btn btn-hero">Поиск + Анализ + Адаптация</button>
+        <div class="aux-row">
+          <span class="aux-hint">Нажмите кнопку сценария чтобы начать</span>
+          <div class="aux-buttons">
+            <button class="btn-aux">Очистить лог</button>
+            <button class="btn-aux">Отмена</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Лог выполнения</div>
+      </div>
+      <div class="card-body">
+        <div class="log-area">
+          <div class="log-info">[14:22:01] Запуск анализатора…</div>
+          <div>[14:22:02] Загрузка вакансий из базы данных…</div>
+          <div class="log-ok">[14:22:03] Найдено 12 вакансий для анализа</div>
+          <div>[14:22:04] Анализ вакансии #1: Senior Python Developer — Yandex…</div>
+          <div class="log-ok">[14:22:07] Оценка: 87/100 ✓</div>
+          <div>[14:22:08] Анализ вакансии #2: Backend Engineer — VK…</div>
+          <div class="log-ok">[14:22:11] Оценка: 74/100 ✓</div>
+          <div>[14:22:12] Анализ вакансии #3: Software Engineer — Tinkoff…</div>
+          <div class="log-warn">[14:22:15] Предупреждение: WrongPhrase обнаружена</div>
+          <div>[14:22:16] Вакансия отклонена</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="statusbar">
+    <div class="status-dot"></div>
+    Анализ: 3 из 12 вакансий обработано
+  </div>
+</div>
+
+<div class="palette-ref">
+  <h3>Палитра — Variant B: Paper Pro</h3>
+  <div class="swatches">
+    <div class="swatch">
+      <div class="sw-box" style="background:#faf7f2"></div>
+      <div><div class="sw-label">Window BG</div><div class="sw-code">#faf7f2</div></div>
+    </div>
+    <div class="swatch">
+      <div class="sw-box" style="background:#fffefb; border-color:#e7e5e4"></div>
+      <div><div class="sw-label">Card</div><div class="sw-code">#fffefb</div></div>
+    </div>
+    <div class="swatch">
+      <div class="sw-box" style="background:#f0ebe0"></div>
+      <div><div class="sw-label">Titlebar / Status</div><div class="sw-code">#f0ebe0</div></div>
+    </div>
+    <div class="swatch">
+      <div class="sw-box" style="background:#1c1917"></div>
+      <div><div class="sw-label">Text Primary</div><div class="sw-code">#1c1917</div></div>
+    </div>
+    <div class="swatch">
+      <div class="sw-box" style="background:#78716c"></div>
+      <div><div class="sw-label">Text Muted</div><div class="sw-code">#78716c</div></div>
+    </div>
+    <div class="swatch">
+      <div class="sw-box" style="background:#2563eb"></div>
+      <div><div class="sw-label">Accent / Primary btn</div><div class="sw-code">#2563eb</div></div>
+    </div>
+    <div class="swatch">
+      <div class="sw-box" style="background:#1d4ed8"></div>
+      <div><div class="sw-label">Hero btn</div><div class="sw-code">#1d4ed8</div></div>
+    </div>
+    <div class="swatch">
+      <div class="sw-box" style="background:#fdf9f4; border-color:#e7e5e4"></div>
+      <div><div class="sw-label">Log BG</div><div class="sw-code">#fdf9f4</div></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

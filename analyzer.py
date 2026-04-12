@@ -124,6 +124,8 @@ class AnalyzerResult:
     extra_llm_keys: tuple[str, ...] = ()
     base_parse_note: str = ""
     summary_explain: str = ""
+    base_score_reason: str = ""
+    add_score_reason: str = ""
 
 
 def _clamp_0_100(x: float) -> float:
@@ -179,7 +181,15 @@ def _to_float(x: Any) -> float:
 
 def _pick_base_scoring_raw(data: dict) -> tuple[Any, str | None]:
     """Часто модель даёт другое имя поля — иначе получаем base_scoring = 0."""
-    for k in ("base_scoring", "BaseScoring", "baseScore", "base_score", "Base", "match_score"):
+    for k in (
+        "total_score",
+        "base_scoring",
+        "BaseScoring",
+        "baseScore",
+        "base_score",
+        "Base",
+        "match_score",
+    ):
         if k in data and data[k] is not None:
             return data[k], k
     return None, None
@@ -233,10 +243,81 @@ def _parse_base_scoring_from_llm(data: dict) -> tuple[float, str]:
     if key is None:
         keys = [str(k) for k in list(data.keys())[:15]]
         return 0.0, (
-            "нет поля base_scoring (ожидались синонимы: base_scoring, BaseScoring, …). "
+            "нет поля total_score/base_scoring (ожидались синонимы: total_score, base_scoring, BaseScoring, …). "
             f"Ключи в ответе: {keys}"
         )
     return _coerce_llm_percent(raw, key_used=key)
+
+
+def _safe_text(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value.strip()
+    return str(value).strip()
+
+
+def _build_base_score_reason(data: dict, base_note: str) -> str:
+    """Собирает человекочитаемое объяснение BaseScoring из нового JSON-формата."""
+    parts: list[str] = []
+
+    summary = _safe_text(data.get("summary"))
+    if summary:
+        parts.append(summary)
+
+    scores = data.get("scores_by_category")
+    if isinstance(scores, dict):
+        cat_chunks: list[str] = []
+        for cat_name, cat_data in scores.items():
+            if not isinstance(cat_data, dict):
+                continue
+            score = _to_float(cat_data.get("score"))
+            weight = _to_float(cat_data.get("weight"))
+            comment = _safe_text(cat_data.get("comment"))
+            if not comment and score <= 0 and weight <= 0:
+                continue
+            label = _safe_text(cat_name) or "category"
+            if comment:
+                cat_chunks.append(f"{label}: {comment} (score={score:.1f}, weight={weight:.2f})")
+            else:
+                cat_chunks.append(f"{label}: score={score:.1f}, weight={weight:.2f}")
+        if cat_chunks:
+            parts.append("Категории: " + "; ".join(cat_chunks))
+
+    recommendation = _safe_text(data.get("recommendation"))
+    if recommendation:
+        parts.append(f"Recommendation: {recommendation}")
+
+    if base_note:
+        parts.append(f"Parse: {base_note}")
+
+    text = "\n".join(p for p in parts if p).strip()
+    return text[:2000]
+
+
+def _build_add_score_reason(
+    *,
+    criterion_lines: tuple[CriterionScoreLine, ...],
+    additional_scoring: float,
+    summary_explain: str,
+) -> str:
+    """Собирает краткое обоснование AdditionalScoring по критериям."""
+    if not criterion_lines:
+        if summary_explain:
+            return summary_explain[:2000]
+        return "AdditionalScoring = 0: нет критериев в листе Additional Filter."
+
+    top = sorted(criterion_lines, key=lambda x: x.share_of_additional, reverse=True)[:3]
+    chunks = [
+        f"AdditionalScoring={additional_scoring:.1f}. Ключевые критерии:"
+    ]
+    for line in top:
+        chunks.append(
+            f"{line.name}: {line.applied:.1f}/{line.weight:g} (вклад {line.share_of_additional:.1f}%)."
+        )
+    if summary_explain:
+        chunks.append(summary_explain)
+    return " ".join(chunks)[:2000]
 
 
 def _compute_additional_scoring(
@@ -286,7 +367,13 @@ def _compute_additional_scoring(
     return _clamp_0_100(achieved / total_weight * 100.0), normalized, tuple(lines)
 
 
-def analyze_job(*, base_cv: str, job_description: str, additional_filters: list[dict]) -> AnalyzerResult:
+def analyze_job(
+    *,
+    base_cv: str,
+    job_description: str,
+    additional_filters: list[dict],
+    base_system_prompt: str | None = None,
+) -> AnalyzerResult:
     """
     Делает LLM-анализ текста вакансии:
       - BaseScoring 0..100 (соответствие базовому CV; требования вакансии = 100%)
@@ -297,17 +384,13 @@ def analyze_job(*, base_cv: str, job_description: str, additional_filters: list[
         for f in additional_filters
     )
 
-    system_prompt = (
+    default_system_prompt = (
         "Ты — аналитик вакансий. Твоя задача — оценить соответствие кандидата вакансии.\n"
         "Верни ТОЛЬКО JSON без пояснений.\n"
-        "Правила:\n"
-        '- Поле обязательно называй ровно "base_scoring" (число).\n'
-        "- base_scoring: число от 0 до 100 (проценты совпадения CV с вакансией), не доля: "
-        "нужно 72, а не 0.72.\n"
-        "- additional_values: объект, ключи строго как названия критериев из списка, значения — числа.\n"
-        "- Для каждого дополнительного критерия значение должно быть в диапазоне 0..weight "
-        "(тоже в баллах критерия, не доля от weight).\n"
+        "Формат BaseScoring — только JSON с полями total_score, scores_by_category, summary, recommendation.\n"
+        "Дополнительно верни additional_values для расчета AdditionalScoring.\n"
     )
+    system_prompt = (base_system_prompt or "").strip() or default_system_prompt
 
     user_prompt = f"""## Базовое резюме кандидата
 {base_cv}
@@ -320,7 +403,17 @@ def analyze_job(*, base_cv: str, job_description: str, additional_filters: list[
 
 Верни JSON в формате:
 {{
-  "base_scoring": 0-100,
+    "total_score": 0-100,
+    "scores_by_category": {{
+        "experience": {{"score": 0-100, "weight": 0.35, "comment": "..."}},
+        "hard_skills": {{"score": 0-100, "weight": 0.30, "comment": "..."}},
+        "education": {{"score": 0-100, "weight": 0.10, "comment": "..."}},
+        "soft_skills": {{"score": 0-100, "weight": 0.10, "comment": "..."}},
+        "seniority": {{"score": 0-100, "weight": 0.10, "comment": "..."}},
+        "additional": {{"score": 0-100, "weight": 0.05, "comment": "..."}}
+    }},
+    "summary": "Короткий вывод",
+    "recommendation": "invite_to_interview|maybe|reject",
   "additional_values": {{
     "<criterion_name>": <number in 0..weight>
   }}
@@ -332,6 +425,19 @@ def analyze_job(*, base_cv: str, job_description: str, additional_filters: list[
     add_vals = data.get("additional_values") or {}
     if not isinstance(add_vals, dict):
         add_vals = {}
+
+    if not add_vals and additional_filters:
+        scores = data.get("scores_by_category")
+        additional_category = None
+        if isinstance(scores, dict):
+            additional_data = scores.get("additional")
+            if isinstance(additional_data, dict):
+                additional_category = _to_float(additional_data.get("score"))
+        if additional_category is not None:
+            add_vals = {
+                str(f["name"]): float(f["weight"]) * max(0.0, min(100.0, additional_category)) / 100.0
+                for f in additional_filters
+            }
 
     additional_scoring, normalized_vals, criterion_lines = _compute_additional_scoring(
         additional_filters, add_vals
@@ -351,6 +457,12 @@ def analyze_job(*, base_cv: str, job_description: str, additional_filters: list[
         extra_llm_keys=extra_llm_keys,
         base_parse_note=base_note,
         summary_explain=summary_explain,
+        base_score_reason=_build_base_score_reason(data, base_note),
+        add_score_reason=_build_add_score_reason(
+            criterion_lines=criterion_lines,
+            additional_scoring=additional_scoring,
+            summary_explain=summary_explain,
+        ),
     )
 
 
@@ -434,6 +546,12 @@ def run_analyzer(*, client, base_cv: str) -> tuple[int, int]:
         return 0, 0
 
     additional_filters = sheets.read_additional_filters(client)
+
+    try:
+        base_system_prompt = sheets.get_base_scoring_system_prompt(client)
+    except Exception as e:
+        _log.warning("Analyzer: не удалось прочитать SystemPrompt из листа %s: %s", config.SHEET_BASE_SCORING, e)
+        base_system_prompt = None
     print(
         f"      • Строк с URL без Description: {len(rows)}; "
         f"доп. критериев: {len(additional_filters)}",
@@ -454,7 +572,10 @@ def run_analyzer(*, client, base_cv: str) -> tuple[int, int]:
             print(f"         ✓ Текст со страницы: {len(description_text)} символов", flush=True)
             print(f"         → запрос к LLM ({config.LLM_PROVIDER}) для скоринга…", flush=True)
             result = analyze_job(
-                base_cv=base_cv, job_description=description_text, additional_filters=additional_filters
+                base_cv=base_cv,
+                job_description=description_text,
+                additional_filters=additional_filters,
+                base_system_prompt=base_system_prompt,
             )
             sheets.write_analyzer_result(
                 worksheet,
@@ -548,6 +669,11 @@ def run_analyzer_search_database(*, client, base_cv: str) -> tuple[int, int, int
 
     # 3. Читаем дополнительные критерии
     additional_filters = sheets.read_additional_filters(client)
+    try:
+        base_system_prompt = sheets.get_base_scoring_system_prompt(client)
+    except Exception as e:
+        _log.warning("Analyzer: не удалось прочитать SystemPrompt из листа %s: %s", config.SHEET_BASE_SCORING, e)
+        base_system_prompt = None
     print(
         f"      • Строк в Search DataBase без SummaryScoring: {len(rows)}; "
         f"забанено фраз: {len(wrong_phrases)}; доп. критериев: {len(additional_filters)}",
@@ -587,6 +713,8 @@ def run_analyzer_search_database(*, client, base_cv: str) -> tuple[int, int, int
                     base_scoring=0.0,
                     additional_scoring=0.0,
                     summary_scoring=0.0,
+                    base_score_reason="Отклонено: найдены запрещенные фразы (WrongPhrases).",
+                    add_score_reason="Отклонено: найдены запрещенные фразы (WrongPhrases).",
                     wrong_phrases_flag=1,
                 )
                 wrong_count += 1
@@ -600,7 +728,10 @@ def run_analyzer_search_database(*, client, base_cv: str) -> tuple[int, int, int
         try:
             print(f"         → запрос к LLM ({config.LLM_PROVIDER}) для скоринга…", flush=True)
             result = analyze_job(
-                base_cv=base_cv, job_description=description, additional_filters=additional_filters
+                base_cv=base_cv,
+                job_description=description,
+                additional_filters=additional_filters,
+                base_system_prompt=base_system_prompt,
             )
             
             # Записать результат в Search DataBase
@@ -611,6 +742,8 @@ def run_analyzer_search_database(*, client, base_cv: str) -> tuple[int, int, int
                 result.base_scoring,
                 result.additional_scoring,
                 result.summary_scoring,
+                base_score_reason=result.base_score_reason,
+                add_score_reason=result.add_score_reason,
                 wrong_phrases_flag=0,
             )
             
@@ -635,7 +768,9 @@ def run_analyzer_search_database(*, client, base_cv: str) -> tuple[int, int, int
                     tracker_row_data = {
                         "description": description,
                         "base_scoring": result.base_scoring,
+                        "base_score_reason": result.base_score_reason,
                         "additional_scoring": result.additional_scoring,
+                        "add_score_reason": result.add_score_reason,
                         "summary_scoring": result.summary_scoring,
                     }
                     

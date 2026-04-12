@@ -347,6 +347,31 @@ def read_additional_filters(client: gspread.Client):
     return filters
 
 
+def get_base_scoring_system_prompt(client: gspread.Client) -> str:
+    """
+    Читает системный промпт для BaseScoring с листа BaseScoring.
+    Ожидаемый формат: строка, где в колонке A лежит "SystemPrompt",
+    а текст промпта лежит в колонке B.
+    """
+    spreadsheet = client.open_by_key(config.SPREADSHEET_ID)
+    worksheet = spreadsheet.worksheet(config.SHEET_BASE_SCORING)
+    all_values = worksheet.get_all_values()
+
+    for row in all_values:
+        key = row[0].strip() if len(row) > 0 else ""
+        if key.lower() != "systemprompt":
+            continue
+        prompt = row[1].strip() if len(row) > 1 else ""
+        if prompt:
+            return prompt
+        break
+
+    raise ValueError(
+        f"На листе '{config.SHEET_BASE_SCORING}' не найдена заполненная строка "
+        "с ключом 'SystemPrompt' в колонке A и текстом в колонке B"
+    )
+
+
 def write_tracker_description_only(
     worksheet: gspread.Worksheet,
     row_num: int,
@@ -418,7 +443,9 @@ def get_search_database_rows(client: gspread.Client):
     # Найти нужные колонки
     col_desc = _find_col(headers, config.COL_DESCRIPTION)
     col_base = _find_col(headers, config.COL_BASE_SCORING)
+    col_base_reason = _find_col(headers, config.COL_BASE_SCORE_REASON)
     col_add = _find_col(headers, config.COL_ADDITIONAL_SCORING)
+    col_add_reason = _find_col(headers, config.COL_ADD_SCORE_REASON)
     col_sum = _find_col(headers, config.COL_SUMMARY_SCORING)
     col_wrong = _find_col(headers, config.COL_WRONG_PHRASES)
     col_tracker_id = _find_col(headers, config.COL_TRACKER_ID)
@@ -435,7 +462,9 @@ def get_search_database_rows(client: gspread.Client):
     col_indices = {
         "description": col_desc,
         "base_scoring": col_base,
+        "base_score_reason": col_base_reason,
         "additional_scoring": col_add,
+        "add_score_reason": col_add_reason,
         "summary_scoring": col_sum,
         "wrong_phrases": col_wrong,
         "tracker_id": col_tracker_id,
@@ -459,6 +488,8 @@ def write_search_database_result(
     base_scoring: float,
     additional_scoring: float,
     summary_scoring: float,
+    base_score_reason: str = "",
+    add_score_reason: str = "",
     wrong_phrases_flag: int = 0,
 ) -> None:
     """Записывает результат анализа в Search DataBase."""
@@ -467,6 +498,12 @@ def write_search_database_result(
         (row_num, col_indices["additional_scoring"] + 1, _fmt_score(additional_scoring)),
         (row_num, col_indices["summary_scoring"] + 1, _fmt_score(summary_scoring)),
     ]
+
+    if col_indices.get("base_score_reason") is not None:
+        updates.append((row_num, col_indices["base_score_reason"] + 1, (base_score_reason or "").strip()))
+
+    if col_indices.get("add_score_reason") is not None:
+        updates.append((row_num, col_indices["add_score_reason"] + 1, (add_score_reason or "").strip()))
     
     # Если есть колонка WrongPhrases, добавить флаг
     if col_indices.get("wrong_phrases") is not None:
@@ -533,7 +570,9 @@ def add_row_to_tracker(
         "ID": row_id,
         config.COL_DESCRIPTION: row_data.get("description", ""),
         config.COL_BASE_SCORING: _fmt_score(row_data.get("base_scoring", 0.0)),
+        config.COL_BASE_SCORE_REASON: row_data.get("base_score_reason", ""),
         config.COL_ADDITIONAL_SCORING: _fmt_score(row_data.get("additional_scoring", 0.0)),
+        config.COL_ADD_SCORE_REASON: row_data.get("add_score_reason", ""),
         config.COL_SUMMARY_SCORING: _fmt_score(row_data.get("summary_scoring", 0.0)),
         config.COL_TRACKER_ID: row_id,
     }

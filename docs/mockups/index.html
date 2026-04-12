@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>CV Adapter — GUI Mockups</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #1e1e2e; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; }
+  h1 { color: #cdd6f4; font-size: 22px; font-weight: 600; margin-bottom: 8px; }
+  p { color: #a6adc8; font-size: 14px; margin-bottom: 36px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 700px; width: 100%; }
+  a { display: block; text-decoration: none; }
+  .card { background: #313244; border-radius: 12px; padding: 24px 28px; border: 2px solid transparent; transition: border-color 0.15s, transform 0.1s; cursor: pointer; }
+  .card:hover { border-color: #89b4fa; transform: translateY(-2px); }
+  .tag { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .08em; padding: 3px 8px; border-radius: 4px; margin-bottom: 10px; }
+  .card h2 { color: #cdd6f4; font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+  .card p { color: #a6adc8; font-size: 13px; margin-bottom: 0; }
+  .preview { height: 56px; border-radius: 6px; margin-bottom: 14px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .dot { width: 18px; height: 18px; border-radius: 50%; }
+  /* Variant colors */
+  .pv-a { background: #eceff4; }
+  .dot-a1 { background: #2d3748; }
+  .dot-a2 { background: #4a5568; }
+  .dot-a3 { background: #3b82f6; }
+  .tag-a { background: #dbeafe; color: #1d4ed8; }
+
+  .pv-b { background: #f5f0e8; }
+  .dot-b1 { background: #44403c; }
+  .dot-b2 { background: #78716c; }
+  .dot-b3 { background: #2563eb; }
+  .tag-b { background: #fef3c7; color: #92400e; }
+
+  .pv-c { background: #f1f5f9; }
+  .dot-c1 { background: #334155; }
+  .dot-c2 { background: #64748b; }
+  .dot-c3 { background: #0f766e; }
+  .tag-c { background: #ccfbf1; color: #134e4a; }
+
+  .pv-d { background: #1e293b; }
+  .dot-d1 { background: #64748b; }
+  .dot-d2 { background: #94a3b8; }
+  .dot-d3 { background: #38bdf8; }
+  .tag-d { background: #0c4a6e; color: #bae6fd; }
+</style>
+</head>
+<body>
+  <h1>CV Adapter — варианты дизайна GUI</h1>
+  <p>Нажмите на карточку, чтобы открыть интерактивный макет</p>
+  <div class="grid">
+    <a href="variant_a.html">
+      <div class="card">
+        <div class="preview pv-a">
+          <div class="dot dot-a1"></div>
+          <div class="dot dot-a2"></div>
+          <div class="dot dot-a3"></div>
+        </div>
+        <span class="tag tag-a">A — Slate Calm</span>
+        <h2>Спокойный серый</h2>
+        <p>Светлый фон #f1f5f9, белые карточки, один синий акцент, мягкие тени. Минимализм.</p>
+      </div>
+    </a>
+    <a href="variant_b.html">
+      <div class="card">
+        <div class="preview pv-b">
+          <div class="dot dot-b1"></div>
+          <div class="dot dot-b2"></div>
+          <div class="dot dot-b3"></div>
+        </div>
+        <span class="tag tag-b">B — Paper Pro</span>
+        <h2>Тёплая бумага</h2>
+        <p>Кремовый фон #faf7f2, тёплые нейтралы, синий акцент. Ощущение бумажных слоёв.</p>
+      </div>
+    </a>
+    <a href="variant_c.html">
+      <div class="card">
+        <div class="preview pv-c">
+          <div class="dot dot-c1"></div>
+          <div class="dot dot-c2"></div>
+          <div class="dot dot-c3"></div>
+        </div>
+        <span class="tag tag-c">C — Mono Accent</span>
+        <h2>Монохром + акцент</h2>
+        <p>80% нейтральный серый, один бирюзовый акцент. Максимальная сдержанность.</p>
+      </div>
+    </a>
+    <a href="variant_d.html">
+      <div class="card">
+        <div class="preview pv-d">
+          <div class="dot dot-d1"></div>
+          <div class="dot dot-d2"></div>
+          <div class="dot dot-d3"></div>
+        </div>
+        <span class="tag tag-d">D — Command Deck</span>
+        <h2>Тёмная панель</h2>
+        <p>Холодный тёмный фон, graphite-карточки, светло-голубой акцент. Оперативная панель.</p>
+      </div>
+    </a>
+  </div>
+</body>
+</html>

@@ -30,10 +30,13 @@ import config
 
 _log = logging.getLogger(__name__)
 
-CARD_SELECTORS = [
+STRICT_CARD_SELECTORS = [
     "ul.jobs-search__results-list > li",
     ".jobs-search-results__list-item",
     ".scaffold-layout__list-container li",
+]
+
+FALLBACK_CARD_SELECTORS = [
     ".job-card-container",
     "[data-job-id]",
 ]
@@ -722,11 +725,46 @@ async def _apply_industry_filters(page, industries: list[str]) -> str:
 
 
 async def _get_job_cards(page) -> tuple[str | None, list[Any]]:
-    for selector in CARD_SELECTORS:
+    for selector in STRICT_CARD_SELECTORS:
+        cards = await page.query_selector_all(selector)
+        if cards:
+            return selector, cards
+
+    # Fallback может зацепить рекомендации типа "Jobs you may be interested in".
+    # Поэтому применяем его только если на странице нет явного признака пустой выдачи.
+    if await _has_no_results_indicator(page):
+        return None, []
+
+    for selector in FALLBACK_CARD_SELECTORS:
         cards = await page.query_selector_all(selector)
         if cards:
             return selector, cards
     return None, []
+
+
+async def _has_no_results_indicator(page) -> bool:
+    try:
+        body_text = (await page.locator("body").inner_text(timeout=2000)).lower()
+    except Exception:
+        return False
+
+    markers = [
+        "no matching jobs found",
+        "no jobs found",
+        "we couldn't find",
+        "we couldn’t find",
+        "no exact matches",
+        "didn't find any jobs",
+        "didn’t find any jobs",
+        "не удалось обнаружить ни одной вакансии",
+        "не найдено вакансий",
+        "не найдено подходящих вакансий",
+        "вакансий не найдено",
+        "geen vacatures",
+        "geen resultaten",
+    ]
+
+    return any(marker in body_text for marker in markers)
 
 
 async def _dismiss_known_popups(page) -> int:
@@ -768,7 +806,14 @@ async def _describe_page_state(page) -> str:
         "geen vacatures",
         "geen resultaten",
         "we couldn’t find",
+        "we couldn't find",
         "no exact matches",
+        "didn't find any jobs",
+        "didn’t find any jobs",
+        "не удалось обнаружить ни одной вакансии",
+        "не найдено вакансий",
+        "не найдено подходящих вакансий",
+        "вакансий не найдено",
     ]
     if any(marker in body_text for marker in no_results_markers):
         return f"по текущим фильтрам LinkedIn не показывает вакансии | title='{title}' | url={url}"

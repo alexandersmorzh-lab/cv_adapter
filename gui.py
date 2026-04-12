@@ -16,8 +16,9 @@ class CVAdapterGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("CV Adapter")
-        self.root.geometry("840x620")
-        self.root.configure(bg="#f4f6fb")
+        self.root.geometry("900x660")
+        self.root.minsize(820, 580)
+        self.root.configure(bg="#f4f6f8")
         
         # Процесс для отслеживания и остановки
         self.process = None
@@ -26,85 +27,221 @@ class CVAdapterGUI:
         self.style = ttk.Style(self.root)
         if "clam" in self.style.theme_names():
             self.style.theme_use("clam")
+
+        self.style.configure("Card.TFrame", background="#ffffff")
+        self.style.configure("Inner.TFrame", background="#ffffff")
+
         self.style.configure(
             "Primary.TButton",
             foreground="#ffffff",
-            background="#3b82f6",
+            background="#0f766e",
             borderwidth=0,
             focusthickness=3,
             focuscolor="",
-            padding=(12, 8),
+            padding=(14, 10),
             font=("Segoe UI", 10, "bold"),
         )
         self.style.map(
             "Primary.TButton",
-            background=[("active", "#2563eb"), ("disabled", "#93c5fd")],
+            background=[("active", "#0d6b64"), ("disabled", "#99d6d1")],
         )
         self.style.configure(
-            "Secondary.TButton",
-            foreground="#1f2937",
-            background="#e2e8f0",
+            "ActivePrimary.TButton",
+            foreground="#99f6e4",
+            background="#115e59",
             borderwidth=0,
             focusthickness=3,
             focuscolor="",
-            padding=(12, 8),
-            font=("Segoe UI", 10),
-        )
-        self.style.map(
-            "Secondary.TButton",
-            background=[("active", "#cbd5e1"), ("disabled", "#f8fafc")],
-        )
-        self.style.configure(
-            "Danger.TButton",
-            foreground="#ffffff",
-            background="#dc2626",
-            borderwidth=0,
-            focusthickness=3,
-            focuscolor="",
-            padding=(12, 8),
+            padding=(14, 10),
             font=("Segoe UI", 10, "bold"),
         )
         self.style.map(
-            "Danger.TButton",
-            background=[("active", "#b91c1c"), ("disabled", "#fca5a5")],
+            "ActivePrimary.TButton",
+            background=[("active", "#0f4f4a")],
         )
 
-        # Создаем фрейм для кнопок
-        button_frame = ttk.Frame(root, padding=10)
-        button_frame.pack(fill=tk.X, padx=10, pady=(10, 0))
+        self.style.configure(
+            "Hero.TButton",
+            foreground="#ffffff",
+            background="#0f766e",
+            borderwidth=0,
+            focusthickness=3,
+            focuscolor="",
+            padding=(16, 12),
+            font=("Segoe UI", 11, "bold"),
+        )
+        self.style.map(
+            "Hero.TButton",
+            background=[("active", "#0d5f5a"), ("disabled", "#7dd3cf")],
+        )
+        self.style.configure(
+            "ActiveHero.TButton",
+            foreground="#ffffff",
+            background="#115e59",
+            borderwidth=0,
+            focusthickness=3,
+            focuscolor="",
+            padding=(16, 12),
+            font=("Segoe UI", 11, "bold"),
+        )
+        self.style.map(
+            "ActiveHero.TButton",
+            background=[("active", "#134e4a")],
+        )
 
-        # Кнопки для задач
-        self.btn_linkedin = ttk.Button(button_frame, text="Поиск в LinkedIn", command=self.run_linkedin, style="Primary.TButton")
-        self.btn_analyze = ttk.Button(button_frame, text="Анализ вакансий", command=self.run_analyze, style="Primary.TButton")
-        self.btn_adapt = ttk.Button(button_frame, text="Адаптация резюме", command=self.run_adapt, style="Primary.TButton")
-        self.btn_all = ttk.Button(button_frame, text="Анализ + Адаптация", command=self.run_all, style="Secondary.TButton")
-        self.btn_cancel = ttk.Button(button_frame, text="Отмена", command=self.cancel_task, style="Danger.TButton")
-        self.btn_clear = ttk.Button(button_frame, text="Очистить лог", command=self.clear_log, style="Secondary.TButton")
+        self.style.configure(
+            "Secondary.TButton",
+            foreground="#64748b",
+            background="#f4f6f8",
+            borderwidth=1,
+            relief="solid",
+            focusthickness=2,
+            focuscolor="",
+            padding=(10, 6),
+            font=("Segoe UI", 9),
+        )
+        self.style.map(
+            "Secondary.TButton",
+            background=[("active", "#e8ecf0"), ("disabled", "#f4f6f8")],
+            foreground=[("active", "#334155")],
+        )
+        self.style.configure(
+            "Danger.TButton",
+            foreground="#64748b",
+            background="#f4f6f8",
+            borderwidth=1,
+            relief="solid",
+            focusthickness=2,
+            focuscolor="",
+            padding=(10, 6),
+            font=("Segoe UI", 9),
+        )
+        self.style.map(
+            "Danger.TButton",
+            background=[("active", "#e8ecf0"), ("disabled", "#f4f6f8")],
+            foreground=[("active", "#334155")],
+        )
 
-        self.btn_linkedin.pack(side=tk.LEFT, padx=5)
-        self.btn_analyze.pack(side=tk.LEFT, padx=5)
-        self.btn_adapt.pack(side=tk.LEFT, padx=5)
-        self.btn_all.pack(side=tk.LEFT, padx=5)
-        self.btn_cancel.pack(side=tk.LEFT, padx=5)
-        self.btn_clear.pack(side=tk.LEFT, padx=5)
+        # Карточка управления
+        control_card = ttk.Frame(root, style="Card.TFrame", padding=(14, 12))
+        control_card.pack(fill=tk.X, padx=14, pady=(14, 8))
+
+        title_label = tk.Label(
+            control_card,
+            text="Сценарии",
+            bg="#ffffff",
+            fg="#1e293b",
+            font=("Segoe UI", 12, "bold"),
+            anchor=tk.W,
+        )
+        title_label.pack(fill=tk.X)
+
+        subtitle_label = tk.Label(
+            control_card,
+            text="Выберите сценарий для запуска",
+            bg="#ffffff",
+            fg="#94a3b8",
+            font=("Segoe UI", 9),
+            anchor=tk.W,
+            pady=2,
+        )
+        subtitle_label.pack(fill=tk.X)
+
+        primary_frame = ttk.Frame(control_card, style="Inner.TFrame")
+        primary_frame.pack(fill=tk.X, pady=(8, 0))
+
+        # Кнопки основных задач
+        self.btn_linkedin = ttk.Button(primary_frame, text="Поиск в LinkedIn", command=self.run_linkedin, style="Primary.TButton")
+        self.btn_analyze = ttk.Button(primary_frame, text="Анализ вакансий", command=self.run_analyze, style="Primary.TButton")
+        self.btn_adapt = ttk.Button(primary_frame, text="Адаптация резюме", command=self.run_adapt, style="Primary.TButton")
+        self.btn_all = ttk.Button(primary_frame, text="Поиск+Анализ+Адаптация", command=self.run_all, style="Hero.TButton")
+
+        self.btn_linkedin.grid(row=0, column=0, padx=(0, 8), pady=(0, 8), sticky="ew")
+        self.btn_analyze.grid(row=0, column=1, padx=(0, 8), pady=(0, 8), sticky="ew")
+        self.btn_adapt.grid(row=0, column=2, pady=(0, 8), sticky="ew")
+        self.btn_all.grid(row=1, column=0, columnspan=3, sticky="ew")
+
+        primary_frame.grid_columnconfigure(0, weight=1)
+        primary_frame.grid_columnconfigure(1, weight=1)
+        primary_frame.grid_columnconfigure(2, weight=1)
+
+        aux_frame = ttk.Frame(control_card, style="Inner.TFrame")
+        aux_frame.pack(fill=tk.X, pady=(10, 0))
+
+        aux_hint = tk.Label(
+            aux_frame,
+            text="Вспомогательные действия",
+            bg="#ffffff",
+            fg="#94a3b8",
+            font=("Segoe UI", 8),
+            anchor=tk.W,
+        )
+        aux_hint.pack(side=tk.LEFT)
+
+        self.btn_clear = ttk.Button(aux_frame, text="Очистить лог", command=self.clear_log, style="Secondary.TButton")
+        self.btn_cancel = ttk.Button(aux_frame, text="Отмена", command=self.cancel_task, style="Danger.TButton")
+
+        self.btn_cancel.pack(side=tk.RIGHT)
+        self.btn_clear.pack(side=tk.RIGHT, padx=(0, 8))
+
+        self._main_buttons = {
+            "linkedin": {
+                "button": self.btn_linkedin,
+                "label": "Поиск в LinkedIn",
+                "normal_style": "Primary.TButton",
+                "active_style": "ActivePrimary.TButton",
+            },
+            "analyze": {
+                "button": self.btn_analyze,
+                "label": "Анализ вакансий",
+                "normal_style": "Primary.TButton",
+                "active_style": "ActivePrimary.TButton",
+            },
+            "adapt": {
+                "button": self.btn_adapt,
+                "label": "Адаптация резюме",
+                "normal_style": "Primary.TButton",
+                "active_style": "ActivePrimary.TButton",
+            },
+            "all": {
+                "button": self.btn_all,
+                "label": "Поиск+Анализ+Адаптация",
+                "normal_style": "Hero.TButton",
+                "active_style": "ActiveHero.TButton",
+            },
+        }
+        self._active_mode = ""
 
         # Шрифт, поддерживающий кириллицу
         log_font = font.Font(family="Segoe UI", size=10)
         
-        # Текстовое поле для логов
+        # Карточка логов
+        log_card = ttk.Frame(root, style="Card.TFrame", padding=(10, 10))
+        log_card.pack(padx=14, pady=8, fill=tk.BOTH, expand=True)
+
+        log_title = tk.Label(
+            log_card,
+            text="Лог выполнения",
+            bg="#ffffff",
+            fg="#1e293b",
+            font=("Segoe UI", 10, "bold"),
+            anchor=tk.W,
+        )
+        log_title.pack(fill=tk.X, pady=(0, 8))
+
         self.log_text = scrolledtext.ScrolledText(
-            root,
+            log_card,
             wrap=tk.WORD,
             height=30,
             state='disabled',
             font=log_font,
-            bg="#ffffff",
-            fg="#111111",
-            bd=0,
-            relief=tk.FLAT,
+            bg="#f9fafb",
+            fg="#1e293b",
+            bd=1,
+            relief=tk.SOLID,
             insertbackground="#111111",
         )
-        self.log_text.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
+        self.log_text.pack(fill=tk.BOTH, expand=True)
 
         # Статус
         self.status_label = tk.Label(
@@ -112,12 +249,13 @@ class CVAdapterGUI:
             text="Готов к работе",
             bd=0,
             anchor=tk.W,
-            bg="#eef2ff",
-            fg="#1f2937",
-            padx=10,
-            pady=8,
+            bg="#e8ecf0",
+            fg="#475569",
+            padx=12,
+            pady=10,
+            font=("Segoe UI", 9, "bold"),
         )
-        self.status_label.pack(fill=tk.X, padx=10, pady=(0, 10))
+        self.status_label.pack(fill=tk.X, padx=14, pady=(0, 14))
 
         # Запрещаем закрытие во время выполнения
         self.is_running = False
@@ -138,15 +276,29 @@ class CVAdapterGUI:
         self.status_label.config(text=message)
         self.root.update()
 
+    def _apply_running_button_state(self, mode: str | None):
+        self._active_mode = mode or ""
+
+        for btn_mode, spec in self._main_buttons.items():
+            button = spec["button"]
+            label = spec["label"]
+            if mode and btn_mode == mode:
+                button.configure(style=spec["active_style"], text=f"● {label}")
+                button.state(["!disabled"])
+            else:
+                button.configure(style=spec["normal_style"], text=label)
+                if mode:
+                    button.state(["disabled"])
+                else:
+                    button.state(["!disabled"])
+
     def _update_button_states(self, running: bool):
         if running:
-            for button in (self.btn_linkedin, self.btn_analyze, self.btn_adapt, self.btn_all):
-                button.state(["disabled"])
+            self._apply_running_button_state(self._active_mode)
             self.btn_cancel.state(["!disabled"])
             self.btn_clear.state(["disabled"])
         else:
-            for button in (self.btn_linkedin, self.btn_analyze, self.btn_adapt, self.btn_all):
-                button.state(["!disabled"])
+            self._apply_running_button_state(None)
             self.btn_cancel.state(["disabled"])
             self.btn_clear.state(["!disabled"])
 
@@ -157,6 +309,7 @@ class CVAdapterGUI:
 
         self.is_running = True
         self.cancel_event.clear()
+        self._active_mode = mode
         self._update_button_states(running=True)
         self.set_status(f"Выполняется: {mode}")
         self.log(f"\n{'='*50}")
@@ -248,6 +401,7 @@ class CVAdapterGUI:
             
             self.process = None
             self.is_running = False
+            self._active_mode = ""
             self._update_button_states(running=False)
             self.set_status("Готов к работе")
 

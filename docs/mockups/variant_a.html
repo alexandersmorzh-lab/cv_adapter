@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Variant A — Slate Calm</title>
+<style>
+/* =====================================
+   VARIANT A: SLATE CALM
+   Background: #f1f5f9 (slate-100)
+   Cards: #ffffff
+   Text primary: #0f172a (slate-900)
+   Text muted: #64748b (slate-500)
+   Accent: #2563eb (blue-600)
+   Hero: #1d4ed8 (blue-700)
+   Border: #e2e8f0 (slate-200)
+   ===================================== */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  min-height: 100vh;
+}
+.nav-bar {
+  display: flex; align-items: center; gap: 16px; margin-bottom: 20px;
+  color: #64748b; font-size: 13px;
+}
+.nav-bar a { color: #2563eb; text-decoration: none; font-size: 13px; }
+.nav-bar a:hover { text-decoration: underline; }
+.badge {
+  background: #dbeafe; color: #1d4ed8; font-size: 11px; font-weight: 700;
+  letter-spacing: .06em; padding: 4px 10px; border-radius: 20px; text-transform: uppercase;
+}
+
+/* Window shell */
+.window {
+  width: 900px;
+  background: #f1f5f9;
+  border-radius: 10px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06);
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+}
+
+/* Titlebar */
+.titlebar {
+  background: #e2e8f0;
+  padding: 10px 16px;
+  display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid #cbd5e1;
+  user-select: none;
+}
+.tb-dot { width: 12px; height: 12px; border-radius: 50%; }
+.tb-red { background: #ef4444; }
+.tb-yellow { background: #f59e0b; }
+.tb-green { background: #22c55e; }
+.tb-title { flex: 1; text-align: center; font-size: 12px; color: #64748b; font-weight: 500; }
+
+/* Main content area */
+.content-area {
+  padding: 16px 20px 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Card */
+.card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  overflow: hidden;
+}
+.card-header {
+  padding: 12px 16px 0 16px;
+}
+.card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: 0.02em;
+}
+.card-subtitle {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 1px;
+}
+.card-body {
+  padding: 12px 16px 16px 16px;
+}
+
+/* Buttons */
+.btn-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.btn {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  text-align: center;
+  cursor: pointer;
+  border: none;
+  transition: background 0.12s, box-shadow 0.12s;
+  line-height: 1.4;
+}
+.btn-primary {
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 1px 2px rgba(37,99,235,0.25);
+}
+.btn-primary:hover {
+  background: #1d4ed8;
+  box-shadow: 0 3px 8px rgba(37,99,235,0.3);
+}
+.btn-hero {
+  background: #1d4ed8;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 12px 16px;
+  border-radius: 6px;
+  width: 100%;
+  box-shadow: 0 2px 6px rgba(29,78,216,0.3);
+  margin-bottom: 10px;
+}
+.btn-hero:hover { background: #1e40af; }
+
+/* Active state demo */
+.btn-active {
+  background: #1e40af !important;
+  color: #bfdbfe !important;
+  cursor: default;
+}
+
+/* Aux row */
+.aux-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.aux-hint { font-size: 11px; color: #94a3b8; }
+.aux-buttons { display: flex; gap: 6px; }
+.btn-aux {
+  background: transparent;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+  padding: 5px 12px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+}
+.btn-aux:hover { background: #f1f5f9; color: #334155; }
+
+/* Log area */
+.log-area {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 5px;
+  padding: 10px 12px;
+  height: 226px;
+  font-family: 'Consolas', 'Cascadia Code', monospace;
+  font-size: 12px;
+  color: #334155;
+  line-height: 1.6;
+  overflow-y: auto;
+}
+.log-ok { color: #16a34a; }
+.log-info { color: #2563eb; }
+.log-warn { color: #d97706; }
+
+/* Status bar */
+.statusbar {
+  background: #e2e8f0;
+  border-top: 1px solid #cbd5e1;
+  padding: 7px 16px;
+  font-size: 12px;
+  color: #475569;
+  font-weight: 600;
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 14px;
+}
+.status-dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; }
+
+/* Color palette ref */
+.palette-ref {
+  margin-top: 20px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px 20px;
+  width: 900px;
+}
+.palette-ref h3 { font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 12px; }
+.swatches { display: flex; gap: 10px; flex-wrap: wrap; }
+.swatch { display: flex; align-items: center; gap: 8px; }
+.sw-box { width: 32px; height: 32px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.08); }
+.sw-label { font-size: 11px; color: #64748b; }
+.sw-code { font-size: 10px; color: #94a3b8; font-family: monospace; }
+</style>
+</head>
+<body>
+
+<div class="nav-bar">
+  <a href="index.html">← Все варианты</a>
+  <span>›</span>
+  <span class="badge">A — Slate Calm</span>
+  <span>Спокойный серый · минимализм</span>
+</div>
+
+<div class="window">
+  <!-- Titlebar -->
+  <div class="titlebar">
+    <div class="tb-dot tb-red"></div>
+    <div class="tb-dot tb-yellow"></div>
+    <div class="tb-dot tb-green"></div>
+    <div class="tb-title">CV Adapter</div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <!-- Scenarios card -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Сценарии</div>
+        <div class="card-subtitle">Выберите действие для запуска</div>
+      </div>
+      <div class="card-body">
+        <!-- 3 primary buttons -->
+        <div class="btn-grid">
+          <button class="btn btn-primary">Поиск</button>
+          <button class="btn btn-primary btn-active">● Анализ  (выполняется…)</button>
+          <button class="btn btn-primary" disabled style="opacity:.45;cursor:default">Адаптация</button>
+        </div>
+        <!-- Hero button -->
+        <button class="btn btn-hero">Поиск + Анализ + Адаптация</button>
+        <!-- Aux row -->
+        <div class="aux-row">
+          <span class="aux-hint">Нажмите кнопку сценария чтобы начать</span>
+          <div class="aux-buttons">
+            <button class="btn-aux">Очистить лог</button>
+            <button class="btn-aux">Отмена</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Log card -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Лог выполнения</div>
+      </div>
+      <div class="card-body">
+        <div class="log-area">
+          <div class="log-info">[14:22:01] Запуск анализатора…</div>
+          <div>[14:22:02] Загрузка вакансий из базы данных…</div>
+          <div class="log-ok">[14:22:03] Найдено 12 вакансий для анализа</div>
+          <div>[14:22:04] Анализ вакансии #1: Senior Python Developer — Yandex…</div>
+          <div class="log-ok">[14:22:07] Оценка: 87/100 ✓</div>
+          <div>[14:22:08] Анализ вакансии #2: Backend Engineer — VK…</div>
+          <div class="log-ok">[14:22:11] Оценка: 74/100 ✓</div>
+          <div>[14:22:12] Анализ вакансии #3: Software Engineer — Tinkoff…</div>
+          <div class="log-warn">[14:22:15] Предупреждение: WrongPhrase обнаружена</div>
+          <div>[14:22:16] Вакансия отклонена</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Status bar -->
+  <div class="statusbar">
+    <div class="status-dot"></div>
+    Анализ: 3 из 12 вакансий обработано
+  </div>
+</div>
+
+<!-- Palette reference -->
+<div class="palette-ref">
+  <h3>Палитра — Variant A: Slate Calm</h3>
+  <div class="swatches">
+    <div class="swatch">
+      <div class="sw-box" style="background:#f1f5f9"></div>
+      <div><div class="sw-label">Window BG</div><div class="sw-code">#f1f5f9</div></div>
+    </div>
+    <div class="swatch">
+      <div class="sw-box" style="background:#ffffff; border-color:#e2e8f0"></div>
+      <div><div class="sw-label">Card</div><div class="sw-code">#ffffff</div></div>
+    </div>
+    <div class="swatch">
+      <div class="sw-box" style="background:#e2e8f0"></div>
+      <div><div class="sw-label">Titlebar / Status</div><div class="sw-code">#e2e8f0</div></div>
+    </div>
+    <div class="swatch">
+      <div class="sw-box" style="background:#0f172a"></div>
+      <div><div class="sw-label">Text Primary</div><div class="sw-code">#0f172a</div></div>
+    </div>
+    <div class="swatch">
+      <div class="sw-box" style="background:#64748b"></div>
+      <div><div class="sw-label">Text Muted</div><div class="sw-code">#64748b</div></div>
+    </div>
+    <div class="swatch">
+      <div class="sw-box" style="background:#2563eb"></div>
+      <div><div class="sw-label">Accent / Primary btn</div><div class="sw-code">#2563eb</div></div>
+    </div>
+    <div class="swatch">
+      <div class="sw-box" style="background:#1d4ed8"></div>
+      <div><div class="sw-label">Hero btn</div><div class="sw-code">#1d4ed8</div></div>
+    </div>
+    <div class="swatch">
+      <div class="sw-box" style="background:#1e40af"></div>
+      <div><div class="sw-label">Active btn</div><div class="sw-code">#1e40af</div></div>
+    </div>
+    <div class="swatch">
+      <div class="sw-box" style="background:#f8fafc; border-color:#e2e8f0"></div>
+      <div><div class="sw-label">Log BG</div><div class="sw-code">#f8fafc</div></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

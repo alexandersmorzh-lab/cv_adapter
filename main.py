@@ -83,7 +83,7 @@ def main():
 
     # LinkedIn import не зависит от Master CV / LLM
     if mode == "linkedin":
-        _run_linkedin(client)
+        _run_linkedin(client, standalone=True)
         return
 
     # 3. Читаем базовое резюме
@@ -102,6 +102,7 @@ def main():
     elif mode == "adapt":
         _run_adapter(client, base_cv)
     elif mode == "all":
+        _run_linkedin(client, standalone=False)
         _run_analyzer(client, base_cv)
         _run_adapter(client, base_cv)
 
@@ -120,7 +121,7 @@ def _get_mode() -> str:
     return "analyze"
 
 
-def _run_linkedin(client: gspread.Client):
+def _run_linkedin(client: gspread.Client, *, standalone: bool = True):
     """Запускает импорт вакансий из LinkedIn в Search DataBase."""
     print("\n[0/2] LinkedIn Search: импорт вакансий в лист 'Search DataBase'...", flush=True)
     try:
@@ -138,11 +139,12 @@ def _run_linkedin(client: gspread.Client):
             flush=True,
         )
 
-    print("    ℹ Следующий шаг: запустите 'Анализ вакансий' или 'Анализ + Адаптация'.", flush=True)
-    print(f"\n{'=' * 60}", flush=True)
-    print("  ✓ Готово!", flush=True)
-    print(f"{'=' * 60}", flush=True)
-    _pause_and_exit(0)
+    if standalone:
+        print("    ℹ Следующий шаг: запустите 'Анализ вакансий' или 'Поиск+Анализ+Адаптация'.", flush=True)
+        print(f"\n{'=' * 60}", flush=True)
+        print("  ✓ Готово!", flush=True)
+        print(f"{'=' * 60}", flush=True)
+        _pause_and_exit(0)
 
 
 def _run_analyzer(client: gspread.Client, base_cv: str):

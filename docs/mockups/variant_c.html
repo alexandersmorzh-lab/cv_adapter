@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Variant C — Mono Accent</title>
+<style>
+/* =====================================
+   VARIANT C: MONO ACCENT
+   Background: #f4f6f8 (neutral cool gray)
+   Cards: #ffffff
+   Text primary: #1e293b (slate-800)
+   Text muted: #64748b (slate-500)
+   Accent: #0f766e (teal-700) — ONE accent
+   Hero: #0d6b64 (darker teal)
+   Border: #dde1e7 
+   Titlebar: #e8ecf0
+   Log BG: #f9fafb
+   ~80% page is pure gray, 20% teal
+   ===================================== */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #e8ecf0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  min-height: 100vh;
+}
+.nav-bar {
+  display: flex; align-items: center; gap: 16px; margin-bottom: 20px;
+  color: #64748b; font-size: 13px;
+}
+.nav-bar a { color: #0f766e; text-decoration: none; font-size: 13px; }
+.nav-bar a:hover { text-decoration: underline; }
+.badge {
+  background: #ccfbf1; color: #134e4a; font-size: 11px; font-weight: 700;
+  letter-spacing: .06em; padding: 4px 10px; border-radius: 20px; text-transform: uppercase;
+}
+
+.window {
+  width: 900px;
+  background: #f4f6f8;
+  border-radius: 10px;
+  box-shadow: 0 3px 16px rgba(0,0,0,0.09), 0 1px 3px rgba(0,0,0,0.05);
+  overflow: hidden;
+  border: 1px solid #d0d6de;
+}
+
+.titlebar {
+  background: #e8ecf0;
+  padding: 10px 16px;
+  display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid #d0d6de;
+  user-select: none;
+}
+.tb-dot { width: 12px; height: 12px; border-radius: 50%; }
+.tb-red { background: #ef4444; }
+.tb-yellow { background: #f59e0b; }
+.tb-green { background: #22c55e; }
+.tb-title { flex: 1; text-align: center; font-size: 12px; color: #64748b; font-weight: 500; }
+
+.content-area {
+  padding: 16px 20px 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Cards: clean white, very subtle shadow */
+.card {
+  background: #ffffff;
+  border: 1px solid #dde1e7;
+  border-radius: 7px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  overflow: hidden;
+}
+.card-header {
+  padding: 12px 16px 10px 16px;
+  border-bottom: 1px solid #f1f3f5;
+}
+.card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  letter-spacing: 0.01em;
+}
+.card-subtitle {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+.card-body {
+  padding: 14px 16px 16px 16px;
+}
+
+.btn-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.btn {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  text-align: center;
+  cursor: pointer;
+  border: none;
+  transition: background 0.12s;
+  line-height: 1.4;
+}
+/* Primary buttons: teal — the ONE accent */
+.btn-primary {
+  background: #0f766e;
+  color: #ffffff;
+  box-shadow: 0 1px 2px rgba(15,118,110,0.2);
+}
+.btn-primary:hover { background: #0d6b64; }
+
+.btn-hero {
+  background: #0d6b64;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 12px 16px;
+  border-radius: 5px;
+  width: 100%;
+  box-shadow: 0 2px 6px rgba(13,107,100,0.24);
+  margin-bottom: 10px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+.btn-hero:hover { background: #115e59; }
+
+/* Active: even darker teal + light text accent */
+.btn-active {
+  background: #115e59 !important;
+  color: #99f6e4 !important;
+  cursor: default;
+}
+
+.aux-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.aux-hint { font-size: 11px; color: #94a3b8; }
+.aux-buttons { display: flex; gap: 6px; }
+.btn-aux {
+  background: transparent;
+  color: #64748b;
+  border: 1px solid #dde1e7;
+  padding: 5px 12px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+}
+.btn-aux:hover { background: #f4f6f8; color: #334155; }
+
+.log-area {
+  background: #f9fafb;
+  border: 1px solid #dde1e7;
+  border-radius: 5px;
+  padding: 10px 12px;
+  height: 226px;
+  font-family: 'Consolas', 'Cascadia Code', monospace;
+  font-size: 12px;
+  color: #334155;
+  line-height: 1.6;
+  overflow-y: auto;
+}
+.log-ok { color: #0f766e; }
+.log-info { color: #0369a1; }
+.log-warn { color: #b45309; }
+
+.statusbar {
+  background: #e8ecf0;
+  border-top: 1px solid #d0d6de;
+  padding: 7px 16px;
+  font-size: 12px;
+  color: #475569;
+  font-weight: 600;
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 14px;
+}
+.status-dot { width: 7px; height: 7px; border-radius: 50%; background: #0f766e; }
+
+.palette-ref {
+  margin-top: 20px;
+  background: #fff;
+  border: 1px solid #dde1e7;
+  border-radius: 8px;
+  padding: 16px 20px;
+  width: 900px;
+}
+.palette-ref h3 { font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 12px; }
+.swatches { display: flex; gap: 10px; flex-wrap: wrap; }
+.swatch { display: flex; align-items: center; gap: 8px; }
+.sw-box { width: 32px; height: 32px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.08); }
+.sw-label { font-size: 11px; color: #64748b; }
+.sw-code { font-size: 10px; color: #94a3b8; font-family: monospace; }
+</style>
+</head>
+<body>
+
+<div class="nav-bar">
+  <a href="index.html">← Все варианты</a>
+  <span>›</span>
+  <span class="badge">C — Mono Accent</span>
+  <span>Монохром + один бирюзовый акцент</span>
+</div>
+
+<div class="window">
+  <div class="titlebar">
+    <div class="tb-dot tb-red"></div>
+    <div class="tb-dot tb-yellow"></div>
+    <div class="tb-dot tb-green"></div>
+    <div class="tb-title">CV Adapter</div>
+  </div>
+
+  <div class="content-area">
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Сценарии</div>
+        <div class="card-subtitle">Выберите действие для запуска</div>
+      </div>
+      <div class="card-body">
+        <div class="btn-grid">
+          <button class="btn btn-primary">Поиск</button>
+          <button class="btn btn-primary btn-active">● Анализ  (выполняется…)</button>
+          <button class="btn btn-primary" disabled style="opacity:.4;cursor:default">Адаптация</button>
+        </div>
+        <button class="btn btn-hero">Поиск + Анализ + Адаптация</button>
+        <div class="aux-row">
+          <span class="aux-hint">Нажмите кнопку сценария чтобы начать</span>
+          <div class="aux-buttons">
+            <button class="btn-aux">Очистить лог</button>
+            <button class="btn-aux">Отмена</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Лог выполнения</div>
+      </div>
+      <div class="card-body">
+        <div class="log-area">
+          <div class="log-info">[14:22:01] Запуск анализатора…</div>
+          <div>[14:22:02] Загрузка вакансий из базы данных…</div>
+          <div class="log-ok">[14:22:03] Найдено 12 вакансий для анализа</div>
+          <div>[14:22:04] Анализ вакансии #1: Senior Python Developer — Yandex…</div>
+          <div class="log-ok">[14:22:07] Оценка: 87/100 ✓</div>
+          <div>[14:22:08] Анализ вакансии #2: Backend Engineer — VK…</div>
+          <div class="log-ok">[14:22:11] Оценка: 74/100 ✓</div>
+          <div>[14:22:12] Анализ вакансии #3: Software Engineer — Tinkoff…</div>
+          <div class="log-warn">[14:22:15] Предупреждение: WrongPhrase обнаружена</div>
+          <div>[14:22:16] Вакансия отклонена</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="statusbar">
+    <div class="status-dot"></div>
+    Анализ: 3 из 12 вакансий обработано
+  </div>
+</div>
+
+<div class="palette-ref">
+  <h3>Палитра — Variant C: Mono Accent (один акцент — всё бирюзовое)</h3>
+  <div class="swatches">
+    <div class="swatch">
+      <div class="sw-box" style="background:#f4f6f8"></div>
+      <div><div class="sw-label">Window BG</div><div class="sw-code">#f4f6f8</div></div>
+    </div>
+    <div class="swatch">
+      <div class="sw-box" style="background:#ffffff; border-color:#dde1e7"></div>
+      <div><div class="sw-label">Card</div><div class="sw-code">#ffffff</div></div>
+    </div>
+    <div class="swatch">
+      <div class="sw-box" style="background:#e8ecf0"></div>
+      <div><div class="sw-label">Titlebar / Status</div><div class="sw-code">#e8ecf0</div></div>
+    </div>
+    <div class="swatch">
+      <div class="sw-box" style="background:#1e293b"></div>
+      <div><div class="sw-label">Text Primary</div><div class="sw-code">#1e293b</div></div>
+    </div>
+    <div class="swatch">
+      <div class="sw-box" style="background:#64748b"></div>
+      <div><div class="sw-label">Text Muted</div><div class="sw-code">#64748b</div></div>
+    </div>
+    <div class="swatch">
+      <div class="sw-box" style="background:#0f766e"></div>
+      <div><div class="sw-label">★ SINGLE ACCENT (all btns)</div><div class="sw-code">#0f766e</div></div>
+    </div>
+    <div class="swatch">
+      <div class="sw-box" style="background:#0d6b64"></div>
+      <div><div class="sw-label">Hero / hover</div><div class="sw-code">#0d6b64</div></div>
+    </div>
+    <div class="swatch">
+      <div class="sw-box" style="background:#115e59"></div>
+      <div><div class="sw-label">Active state</div><div class="sw-code">#115e59</div></div>
+    </div>
+    <div class="swatch">
+      <div class="sw-box" style="background:#f9fafb; border-color:#dde1e7"></div>
+      <div><div class="sw-label">Log BG</div><div class="sw-code">#f9fafb</div></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

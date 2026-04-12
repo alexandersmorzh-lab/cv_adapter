@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Variant D — Command Deck</title>
+<style>
+/* =====================================
+   VARIANT D: COMMAND DECK
+   Background: #1e2835 (cold deep slate)
+   Cards: #253041 (slightly lighter slate)
+   Text primary: #e2e8f0 (slate-200)
+   Text muted: #7a90a8 (muted blue-gray)
+   Accent: #38bdf8 (sky-400) — calm light blue
+   Hero: #0ea5e9 (sky-500)
+   Border: #2d3f52
+   Titlebar: #18222e
+   Log BG: #1a2332
+   ===================================== */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #141d28;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  min-height: 100vh;
+}
+.nav-bar {
+  display: flex; align-items: center; gap: 16px; margin-bottom: 20px;
+  color: #7a90a8; font-size: 13px;
+}
+.nav-bar a { color: #38bdf8; text-decoration: none; font-size: 13px; }
+.nav-bar a:hover { text-decoration: underline; }
+.badge {
+  background: #0c4a6e; color: #bae6fd; font-size: 11px; font-weight: 700;
+  letter-spacing: .06em; padding: 4px 10px; border-radius: 20px; text-transform: uppercase;
+}
+
+.window {
+  width: 900px;
+  background: #1e2835;
+  border-radius: 10px;
+  box-shadow: 0 6px 32px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3);
+  overflow: hidden;
+  border: 1px solid #2d3f52;
+}
+
+.titlebar {
+  background: #18222e;
+  padding: 10px 16px;
+  display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid #2d3f52;
+  user-select: none;
+}
+.tb-dot { width: 12px; height: 12px; border-radius: 50%; }
+.tb-red { background: #f87171; opacity: .8; }
+.tb-yellow { background: #fbbf24; opacity: .8; }
+.tb-green { background: #4ade80; opacity: .8; }
+.tb-title { flex: 1; text-align: center; font-size: 12px; color: #7a90a8; font-weight: 500; }
+
+.content-area {
+  padding: 16px 20px 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Cards: darker inset block on dark background */
+.card {
+  background: #253041;
+  border: 1px solid #2d3f52;
+  border-radius: 7px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 2px 8px rgba(0,0,0,0.2);
+  overflow: hidden;
+}
+.card-header {
+  padding: 12px 16px 10px 16px;
+  border-bottom: 1px solid #2d3f52;
+}
+.card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #cbd5e1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+.card-subtitle {
+  font-size: 11px;
+  color: #4a6070;
+  margin-top: 2px;
+}
+.card-body {
+  padding: 14px 16px 16px 16px;
+}
+
+.btn-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.btn {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  text-align: center;
+  cursor: pointer;
+  border: none;
+  transition: background 0.12s;
+  line-height: 1.4;
+}
+/* Primary: muted dark with sky accent border */
+.btn-primary {
+  background: #1e2d3d;
+  color: #7dd3fc;
+  border: 1px solid #2a4a62 !important;
+  box-shadow: none;
+}
+.btn-primary:hover {
+  background: #243547;
+  color: #bae6fd;
+  border-color: #38bdf8 !important;
+}
+
+.btn-hero {
+  background: #0ea5e9;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 12px 16px;
+  border-radius: 5px;
+  width: 100%;
+  box-shadow: 0 2px 10px rgba(14,165,233,0.35);
+  margin-bottom: 10px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+.btn-hero:hover { background: #0284c7; }
+
+/* Active: sky accent fill */
+.btn-active {
+  background: #075985 !important;
+  color: #e0f2fe !important;
+  border-color: #0ea5e9 !important;
+  cursor: default;
+}
+
+.aux-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.aux-hint { font-size: 11px; color: #4a6070; }
+.aux-buttons { display: flex; gap: 6px; }
+.btn-aux {
+  background: transparent;
+  color: #7a90a8;
+  border: 1px solid #2d3f52;
+  padding: 5px 12px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+}
+.btn-aux:hover { background: #1e2835; color: #94a3b8; }
+
+.log-area {
+  background: #1a2332;
+  border: 1px solid #2d3f52;
+  border-radius: 5px;
+  padding: 10px 12px;
+  height: 226px;
+  font-family: 'Consolas', 'Cascadia Code', monospace;
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.6;
+  overflow-y: auto;
+}
+.log-ok { color: #4ade80; }
+.log-info { color: #38bdf8; }
+.log-warn { color: #fbbf24; }
+
+.statusbar {
+  background: #18222e;
+  border-top: 1px solid #2d3f52;
+  padding: 7px 16px;
+  font-size: 12px;
+  color: #7a90a8;
+  font-weight: 600;
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 14px;
+}
+.status-dot { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; }
+
+.palette-ref {
+  margin-top: 20px;
+  background: #253041;
+  border: 1px solid #2d3f52;
+  border-radius: 8px;
+  padding: 16px 20px;
+  width: 900px;
+}
+.palette-ref h3 { font-size: 12px; font-weight: 700; color: #7a90a8; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 12px; }
+.swatches { display: flex; gap: 10px; flex-wrap: wrap; }
+.swatch { display: flex; align-items: center; gap: 8px; }
+.sw-box { width: 32px; height: 32px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); }
+.sw-label { font-size: 11px; color: #7a90a8; }
+.sw-code { font-size: 10px; color: #4a6070; font-family: monospace; }
+</style>
+</head>
+<body>
+
+<div class="nav-bar">
+  <a href="index.html">← Все варианты</a>
+  <span>›</span>
+  <span class="badge">D — Command Deck</span>
+  <span>Тёмная панель управления</span>
+</div>
+
+<div class="window">
+  <div class="titlebar">
+    <div class="tb-dot tb-red"></div>
+    <div class="tb-dot tb-yellow"></div>
+    <div class="tb-dot tb-green"></div>
+    <div class="tb-title">CV Adapter</div>
+  </div>
+
+  <div class="content-area">
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Сценарии</div>
+        <div class="card-subtitle">Выберите действие для запуска</div>
+      </div>
+      <div class="card-body">
+        <div class="btn-grid">
+          <button class="btn btn-primary">Поиск</button>
+          <button class="btn btn-primary btn-active">● Анализ  (выполняется…)</button>
+          <button class="btn btn-primary" disabled style="opacity:.35;cursor:default">Адаптация</button>
+        </div>
+        <button class="btn btn-hero">Поиск + Анализ + Адаптация</button>
+        <div class="aux-row">
+          <span class="aux-hint">Нажмите кнопку сценария чтобы начать</span>
+          <div class="aux-buttons">
+            <button class="btn-aux">Очистить лог</button>
+            <button class="btn-aux">Отмена</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Лог выполнения</div>
+      </div>
+      <div class="card-body">
+        <div class="log-area">
+          <div class="log-info">[14:22:01] Запуск анализатора…</div>
+          <div>[14:22:02] Загрузка вакансий из базы данных…</div>
+          <div class="log-ok">[14:22:03] Найдено 12 вакансий для анализа</div>
+          <div>[14:22:04] Анализ вакансии #1: Senior Python Developer — Yandex…</div>
+          <div class="log-ok">[14:22:07] Оценка: 87/100 ✓</div>
+          <div>[14:22:08] Анализ вакансии #2: Backend Engineer — VK…</div>
+          <div class="log-ok">[14:22:11] Оценка: 74/100 ✓</div>
+          <div>[14:22:12] Анализ вакансии #3: Software Engineer — Tinkoff…</div>
+          <div class="log-warn">[14:22:15] Предупреждение: WrongPhrase обнаружена</div>
+          <div>[14:22:16] Вакансия отклонена</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="statusbar">
+    <div class="status-dot"></div>
+    Анализ: 3 из 12 вакансий обработано
+  </div>
+</div>
+
+<div class="palette-ref">
+  <h3>Палитра — Variant D: Command Deck</h3>
+  <div class="swatches">
+    <div class="swatch">
+      <div class="sw-box" style="background:#1e2835"></div>
+      <div><div class="sw-label">Window BG</div><div class="sw-code">#1e2835</div></div>
+    </div>
+    <div class="swatch">
+      <div class="sw-box" style="background:#253041"></div>
+      <div><div class="sw-label">Card</div><div class="sw-code">#253041</div></div>
+    </div>
+    <div class="swatch">
+      <div class="sw-box" style="background:#18222e"></div>
+      <div><div class="sw-label">Titlebar / Status</div><div class="sw-code">#18222e</div></div>
+    </div>
+    <div class="swatch">
+      <div class="sw-box" style="background:#e2e8f0"></div>
+      <div><div class="sw-label">Text Primary</div><div class="sw-code">#e2e8f0</div></div>
+    </div>
+    <div class="swatch">
+      <div class="sw-box" style="background:#7a90a8"></div>
+      <div><div class="sw-label">Text Muted</div><div class="sw-code">#7a90a8</div></div>
+    </div>
+    <div class="swatch">
+      <div class="sw-box" style="background:#38bdf8"></div>
+      <div><div class="sw-label">Accent (sky-400)</div><div class="sw-code">#38bdf8</div></div>
+    </div>
+    <div class="swatch">
+      <div class="sw-box" style="background:#0ea5e9"></div>
+      <div><div class="sw-label">Hero btn</div><div class="sw-code">#0ea5e9</div></div>
+    </div>
+    <div class="swatch">
+      <div class="sw-box" style="background:#075985"></div>
+      <div><div class="sw-label">Active btn</div><div class="sw-code">#075985</div></div>
+    </div>
+    <div class="swatch">
+      <div class="sw-box" style="background:#1a2332"></div>
+      <div><div class="sw-label">Log BG</div><div class="sw-code">#1a2332</div></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
