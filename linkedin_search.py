@@ -116,6 +116,44 @@ INDUSTRY_NAME_ALIASES: dict[str, tuple[str, ...]] = {
 INDUSTRY_CODE_MAP_FILE = Path(config.BASE_DIR) / "linkedin_industry_map.json"
 
 
+def _extract_http_status(exc: Exception) -> int | None:
+    response = getattr(exc, "response", None)
+    status = getattr(response, "status_code", None)
+    if isinstance(status, int):
+        return status
+
+    status = getattr(exc, "status_code", None)
+    if isinstance(status, int):
+        return status
+
+    text = str(exc)
+    match = re.search(r"\b([1-5]\d\d)\b", text)
+    if match:
+        try:
+            return int(match.group(1))
+        except ValueError:
+            return None
+    return None
+
+
+def _format_stage_error(stage: str, exc: Exception) -> str:
+    status = _extract_http_status(exc)
+    details = str(exc) or exc.__class__.__name__
+
+    if status == 404:
+        return (
+            f"{stage}: HTTP 404 от Google API.\n"
+            f"SPREADSHEET_ID={config.SPREADSHEET_ID}\n"
+            f"Проверьте доступ аккаунта к таблице и существование листов '{config.SHEET_SEARCH_DATABASE}' и '{config.SHEET_PRIMARY_FILTER}'.\n"
+            f"Техническая деталь: {details}"
+        )
+
+    if status is not None:
+        return f"{stage}: HTTP {status}. Техническая деталь: {details}"
+
+    return f"{stage}: {details}"
+
+
 def _find_col(headers: list[str], name: str) -> int | None:
     target = (name or "").strip().lower()
     for i, header in enumerate(headers):
@@ -1324,8 +1362,23 @@ def run_linkedin_search_import(*, client) -> tuple[int, int, int]:
     Возвращает:
       (найдено вакансий, добавлено новых строк, пропущено дубликатов)
     """
-    worksheet, headers, existing_urls = _ensure_search_database_sheet(client)
-    search_profile = read_primary_filter_rows(client)
+    print(
+        f"      • Проверяю Google Sheets (spreadsheet={config.SPREADSHEET_ID}, sheet='{config.SHEET_SEARCH_DATABASE}')...",
+        flush=True,
+    )
+    try:
+        worksheet, headers, existing_urls = _ensure_search_database_sheet(client)
+    except Exception as e:
+        raise RuntimeError(_format_stage_error("Ошибка чтения листа Search DataBase", e)) from e
+
+    print(
+        f"      • Читаю профиль поиска (sheet='{config.SHEET_PRIMARY_FILTER}')...",
+        flush=True,
+    )
+    try:
+        search_profile = read_primary_filter_rows(client)
+    except Exception as e:
+        raise RuntimeError(_format_stage_error("Ошибка чтения листа Primary Filter", e)) from e
 
     if not search_profile:
         print(f"      ℹ В '{config.SHEET_PRIMARY_FILTER}' нет активных поисков (active=TRUE).", flush=True)

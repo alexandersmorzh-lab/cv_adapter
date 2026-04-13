@@ -66,6 +66,13 @@ def main():
     print("  CV Adapter — адаптация резюме под вакансии", flush=True)
     print("=" * 60, flush=True)
     print(build_info.get_build_log_line(), flush=True)
+    print(config.get_env_status_message(), flush=True)
+    print(config.get_client_secret_status_message(), flush=True)
+    token_path = sheets.get_token_path()
+    if token_path.exists():
+        print(f"[setup] token.json найден: {token_path}", flush=True)
+    else:
+        print(f"[setup] token.json не найден: {token_path} (будет создан после OAuth)", flush=True)
 
     for message in config.RUNTIME_BOOTSTRAP_MESSAGES:
         print(f"[setup] {message}", flush=True)
@@ -222,19 +229,7 @@ def _run_adapter(client: gspread.Client, base_cv: str):
 
 def _check_config(mode: str):
     """Проверяет наличие обязательных настроек для выбранного режима."""
-    errors = []
-
-    if not config.SPREADSHEET_ID:
-        errors.append("SPREADSHEET_ID не задан в .env")
-
-    if mode in {"analyze", "adapt", "all"}:
-        provider = config.LLM_PROVIDER.lower()
-        if provider == "gemini" and not config.GEMINI_API_KEY:
-            errors.append("GEMINI_API_KEY не задан в .env")
-        elif provider == "openai" and not config.OPENAI_API_KEY:
-            errors.append("OPENAI_API_KEY не задан в .env")
-        elif provider == "groq" and not config.GROQ_API_KEY:
-            errors.append("GROQ_API_KEY не задан в .env")
+    errors = config.get_missing_required_settings(mode)
 
     if errors:
         print("\n⚠ Ошибки конфигурации (.env):", flush=True)

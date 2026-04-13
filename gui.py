@@ -268,6 +268,13 @@ class CVAdapterGUI:
         self._log_startup_messages()
 
     def _log_startup_messages(self):
+        self.log(config.get_env_status_message())
+        self.log(config.get_client_secret_status_message())
+        token_path = sheets.get_token_path()
+        if token_path.exists():
+            self.log(f"[setup] token.json найден: {token_path}")
+        else:
+            self.log(f"[setup] token.json не найден: {token_path} (будет создан после OAuth)")
         for message in config.RUNTIME_BOOTSTRAP_MESSAGES:
             self.log(f"[setup] {message}")
 
@@ -377,6 +384,14 @@ class CVAdapterGUI:
         import main as main_module
         
         try:
+            # Жестко валидируем обязательные параметры до попытки OAuth
+            config_errors = config.get_missing_required_settings(mode)
+            if config_errors:
+                self.log("⚠ Ошибки конфигурации (.env):")
+                for error in config_errors:
+                    self.log(f"  • {error}")
+                return
+
             # Проверяем и проводим авторизацию Google, если нужно
             token_path = sheets.get_token_path()
             # self.log(f"[DEBUG] Token path: {token_path}")

@@ -202,6 +202,48 @@ if ENV_FILE is not None:
     load_dotenv(ENV_FILE)
 
 
+def get_env_status_message() -> str:
+    if ENV_FILE is not None:
+        return f"[setup] .env найден: {ENV_FILE}"
+    return "[setup] .env не найден (используются значения по умолчанию и/или переменные окружения ОС)"
+
+
+def get_client_secret_status_message() -> str:
+    secret_path = find_existing_data_file(CLIENT_SECRET_FILE)
+    if secret_path is not None:
+        return f"[setup] OAuth credentials найден: {secret_path}"
+
+    preferred_path = resolve_data_file(CLIENT_SECRET_FILE)
+    easy_access_dir = get_easy_access_data_dir()
+    if easy_access_dir is not None:
+        easy_path = easy_access_dir / CLIENT_SECRET_FILE
+        return (
+            f"[setup] OAuth credentials не найден ({CLIENT_SECRET_FILE}). "
+            f"Ожидается: {preferred_path} или {easy_path}"
+        )
+    return f"[setup] OAuth credentials не найден ({CLIENT_SECRET_FILE}). Ожидается: {preferred_path}"
+
+
+def get_missing_required_settings(mode: str) -> list[str]:
+    errors: list[str] = []
+
+    if not (SPREADSHEET_ID or "").strip():
+        errors.append("SPREADSHEET_ID не задан в .env")
+
+    if mode in {"analyze", "adapt", "all"}:
+        provider = (LLM_PROVIDER or "").lower()
+        if provider == "gemini" and not (GEMINI_API_KEY or "").strip():
+            errors.append("GEMINI_API_KEY не задан в .env")
+        elif provider == "openai" and not (OPENAI_API_KEY or "").strip():
+            errors.append("OPENAI_API_KEY не задан в .env")
+        elif provider == "groq" and not (GROQ_API_KEY or "").strip():
+            errors.append("GROQ_API_KEY не задан в .env")
+        elif provider == "cerebras" and not (CEREBRAS_API_KEY or "").strip():
+            errors.append("CEREBRAS_API_KEY не задан в .env")
+
+    return errors
+
+
 def get(key: str, default: str = "") -> str:
     return os.environ.get(key, default)
 
