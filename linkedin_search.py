@@ -933,8 +933,9 @@ def _launch_debug_browser() -> str:
 
 def _ensure_debug_browser_available() -> None:
     ok, detail = _get_debug_port_status()
+    print(f"      • LinkedIn debug URL: {config.LINKEDIN_CHROME_DEBUG_URL}", flush=True)
     if ok:
-        print("      • Debug browser уже запущен.", flush=True)
+        print(f"      • Debug browser уже запущен: {detail}", flush=True)
         return
 
     if not config.LINKEDIN_AUTO_START_BROWSER:

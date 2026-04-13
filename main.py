@@ -9,6 +9,7 @@ from pathlib import Path
 
 import gspread
 
+import build_info
 import config
 import sheets
 import llm
@@ -64,6 +65,7 @@ def main():
     print("=" * 60, flush=True)
     print("  CV Adapter — адаптация резюме под вакансии", flush=True)
     print("=" * 60, flush=True)
+    print(build_info.get_build_log_line(), flush=True)
 
     for message in config.RUNTIME_BOOTSTRAP_MESSAGES:
         print(f"[setup] {message}", flush=True)

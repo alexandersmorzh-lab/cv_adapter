@@ -2,10 +2,49 @@
 build.py — сборка исполняемого файла через PyInstaller
 Запуск: python build.py [--windows|--macos|--linux]
 """
+import json
+import os
+from datetime import datetime, timezone
+from pathlib import Path
 import subprocess
 import sys
-import os
+import tempfile
 import time
+
+
+def _git_output(*args: str) -> str:
+    try:
+        result = subprocess.run(
+            ["git", *args],
+            capture_output=True,
+            text=True,
+            check=True,
+            cwd=Path(__file__).resolve().parent,
+        )
+    except Exception:
+        return ""
+    return result.stdout.strip()
+
+
+def _create_build_info_file(temp_dir: str) -> str:
+    commit = _git_output("rev-parse", "HEAD")
+    short_commit = _git_output("rev-parse", "--short", "HEAD")
+    branch = _git_output("rev-parse", "--abbrev-ref", "HEAD")
+    built_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    dirty = bool(_git_output("status", "--porcelain"))
+
+    payload = {
+        "source": "build.py",
+        "commit": commit,
+        "commit_short": short_commit,
+        "branch": branch,
+        "built_at": built_at,
+        "dirty": dirty,
+    }
+
+    file_path = Path(temp_dir) / "build_info.json"
+    file_path.write_text(json.dumps(payload, ensure_ascii=True, indent=2), encoding="utf-8")
+    return str(file_path)
 
 def build_exe(platform="auto"):
     """Сборка исполняемого файла для указанной платформы"""
@@ -37,71 +76,73 @@ def build_exe(platform="auto"):
             print("  Пожалуйста, закройте приложение и повторите попытку.")
             return 1
 
-    # Базовые аргументы
-    cmd = [
-        sys.executable, "-m", "PyInstaller",
-        "--clean",                # очистка перед сборкой
-        "--onefile",               # один файл
-        "--name", "CVAdapter",     # имя выходного файла
-        "--noconsole",             # без консоли (GUI)
-        "--windowed",              # оконное приложение
-    ]
+    with tempfile.TemporaryDirectory() as temp_dir:
+        build_info_path = _create_build_info_file(temp_dir)
 
-    # Добавляем необходимые файлы
-    data_files = [
-        (".env.example", "."),     # шаблон конфига
-        ("system_prompt.txt", "."), # системный промпт
-        ("client_secret.json", "."), # OAuth credentials (шаблон)
-    ]
+        # Базовые аргументы
+        cmd = [
+            sys.executable, "-m", "PyInstaller",
+            "--clean",                # очистка перед сборкой
+            "--onefile",               # один файл
+            "--name", "CVAdapter",     # имя выходного файла
+            "--noconsole",             # без консоли (GUI)
+            "--windowed",              # оконное приложение
+        ]
 
-    data_separator = ";" if os.name == 'nt' else ":"
+        # Добавляем необходимые файлы
+        data_files = [
+            (".env.example", "."),      # шаблон конфига
+            ("system_prompt.txt", "."), # системный промпт
+            ("client_secret.json", "."), # OAuth credentials (шаблон)
+            (build_info_path, "."),
+        ]
 
-    for src, dst in data_files:
-        if os.path.exists(src):
-            cmd.extend(["--add-data", f"{src}{data_separator}{dst}"])
+        data_separator = ";" if os.name == 'nt' else ":"
 
-    # Hidden imports
-    hidden_imports = [
-        "main",
-        "analyzer",
-        "resume_adapter",
-        "cv_docs",
-        "prompts",
-        "llm",
-        "sheets",
-        "config",
-    ]
-    for mod in hidden_imports:
-        cmd.extend(["--hidden-import", mod])
+        for src, dst in data_files:
+            if os.path.exists(src):
+                cmd.extend(["--add-data", f"{src}{data_separator}{dst}"])
 
-    # Платформо-специфичные настройки
-    if platform == "windows" or (platform == "auto" and os.name == 'nt'):
-        # cmd.extend([
-        #     "--icon", "icon.ico",  # иконка (если есть)
-        # ])
-        ext = ".exe"
-    elif platform == "macos" or (platform == "auto" and sys.platform == 'darwin'):
-        cmd.extend([
-            "--osx-bundle-identifier", "com.cvadapter.app",
-            # "--icon", "icon.icns",  # иконка (если есть)
-        ])
-        ext = ".app"
-    elif platform == "linux" or (platform == "auto" and sys.platform.startswith('linux')):
-        ext = ""
-    else:
-        print(f"Неизвестная платформа: {platform}")
-        return 1
+        # Hidden imports
+        hidden_imports = [
+            "main",
+            "analyzer",
+            "resume_adapter",
+            "cv_docs",
+            "prompts",
+            "llm",
+            "sheets",
+            "config",
+            "build_info",
+        ]
+        for mod in hidden_imports:
+            cmd.extend(["--hidden-import", mod])
 
-    # Entry point
-    cmd.append("gui.py")
+        # Платформо-специфичные настройки
+        if platform == "windows" or (platform == "auto" and os.name == 'nt'):
+            ext = ".exe"
+        elif platform == "macos" or (platform == "auto" and sys.platform == 'darwin'):
+            cmd.extend([
+                "--osx-bundle-identifier", "com.cvadapter.app",
+            ])
+            ext = ".app"
+        elif platform == "linux" or (platform == "auto" and sys.platform.startswith('linux')):
+            ext = ""
+        else:
+            print(f"Неизвестная платформа: {platform}")
+            return 1
 
-    print(f"Сборка для {platform}...")
-    print("Команда:", " ".join(cmd))
-    
-    # Запоминаем время перед сборкой
-    build_start_time = time.time()
+        # Entry point
+        cmd.append("gui.py")
 
-    result = subprocess.run(cmd)
+        print(f"Сборка для {platform}...")
+        print(f"Build info: commit={_git_output('rev-parse', '--short', 'HEAD') or 'unknown'}")
+        print("Команда:", " ".join(cmd))
+        
+        # Запоминаем время перед сборкой
+        build_start_time = time.time()
+
+        result = subprocess.run(cmd)
 
     if result.returncode == 0:
         output_name = f"dist/CVAdapter{ext}"

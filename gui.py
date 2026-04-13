@@ -10,13 +10,14 @@ import os
 import io
 from pathlib import Path
 
+import build_info
 import config
 import sheets
 
 class CVAdapterGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("CV Adapter")
+        self.root.title(f"CV Adapter [{build_info.get_build_label()}]")
         self.root.geometry("900x660")
         self.root.minsize(820, 580)
         self.root.configure(bg="#f4f6f8")
