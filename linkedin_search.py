@@ -842,7 +842,17 @@ def _windows_debug_browser_hint() -> str:
     )
 
 
-def _debug_port_available() -> bool:
+def _format_debug_browser_error(detail: str) -> str:
+    debug_url = config.LINKEDIN_CHROME_DEBUG_URL.rstrip("/")
+    return (
+        "Не удалось подключиться к браузеру LinkedIn через remote debugging.\n"
+        f"URL отладки: {debug_url}\n"
+        f"Причина: {detail}\n"
+        "Проверьте, что Chrome/Edge запущен именно с remote debugging и что порт в LINKEDIN_CHROME_DEBUG_URL указан верно."
+    )
+
+
+def _get_debug_port_status() -> tuple[bool, str]:
     import httpx
 
     debug_url = config.LINKEDIN_CHROME_DEBUG_URL.rstrip("/")
@@ -850,9 +860,24 @@ def _debug_port_available() -> bool:
         with httpx.Client(timeout=3.0) as client:
             response = client.get(f"{debug_url}/json/version")
             response.raise_for_status()
-        return True
-    except Exception:
-        return False
+            payload = response.json()
+        browser_name = payload.get("Browser") or payload.get("User-Agent") or "unknown browser"
+        websocket_url = payload.get("webSocketDebuggerUrl") or ""
+        if not websocket_url:
+            return False, "endpoint /json/version отвечает, но не вернул webSocketDebuggerUrl"
+        return True, f"endpoint доступен ({browser_name})"
+    except httpx.HTTPStatusError as e:
+        status_code = e.response.status_code if e.response else "unknown"
+        return False, f"endpoint {debug_url}/json/version вернул HTTP {status_code}"
+    except httpx.RequestError as e:
+        return False, f"endpoint {debug_url}/json/version недоступен: {e}"
+    except ValueError as e:
+        return False, f"endpoint {debug_url}/json/version вернул некорректный JSON: {e}"
+
+
+def _debug_port_available() -> bool:
+    ok, _ = _get_debug_port_status()
+    return ok
 
 
 def _find_browser_executable() -> str | None:
@@ -907,22 +932,21 @@ def _launch_debug_browser() -> str:
 
 
 def _ensure_debug_browser_available() -> None:
-    if _debug_port_available():
+    ok, detail = _get_debug_port_status()
+    if ok:
         print("      • Debug browser уже запущен.", flush=True)
         return
 
     if not config.LINKEDIN_AUTO_START_BROWSER:
-        raise RuntimeError(
-            "Не найден браузер с включённым remote debugging.\n"
-            f"Запустите Chrome/Edge так:\n  {_windows_debug_browser_hint()}"
-        )
+        raise RuntimeError(_format_debug_browser_error(f"{detail}\nЗапустите Chrome/Edge так:\n  {_windows_debug_browser_hint()}"))
 
     print("      • Debug browser не найден — запускаю автоматически...", flush=True)
     browser_path = _launch_debug_browser()
 
     deadline = time.time() + 15.0
     while time.time() < deadline:
-        if _debug_port_available():
+        ok, detail = _get_debug_port_status()
+        if ok:
             print(f"      • Запущен браузер: {browser_path}", flush=True)
             print(
                 "      • Если это первый запуск, войдите в LinkedIn в открывшемся окне и повторите поиск.",
@@ -932,8 +956,10 @@ def _ensure_debug_browser_available() -> None:
         time.sleep(1.0)
 
     raise RuntimeError(
-        "Браузер был запущен, но debug-порт не поднялся вовремя.\n"
-        f"Проверьте окно браузера или запустите вручную:\n  {_windows_debug_browser_hint()}"
+        _format_debug_browser_error(
+            f"{detail}\nБраузер был запущен, но debug-порт не поднялся вовремя.\n"
+            f"Проверьте окно браузера или запустите вручную:\n  {_windows_debug_browser_hint()}"
+        )
     )
 
 
@@ -1165,7 +1191,11 @@ async def _collect_jobs(search_profile: list[dict[str, Any]], existing_urls: set
         )
 
     async with async_playwright() as playwright:
-        browser = await playwright.chromium.connect_over_cdp(debug_url)
+        try:
+            browser = await playwright.chromium.connect_over_cdp(debug_url)
+        except Exception as e:
+            _, detail = _get_debug_port_status()
+            raise RuntimeError(_format_debug_browser_error(f"{detail}\nОшибка подключения Playwright: {e}")) from e
         context = browser.contexts[0] if browser.contexts else await browser.new_context()
         page = await context.new_page()
         page.set_default_timeout(30000)
@@ -1305,7 +1335,10 @@ def run_linkedin_search_import(*, client) -> tuple[int, int, int]:
         flush=True,
     )
 
-    jobs = asyncio.run(_collect_jobs(search_profile, existing_urls))
+    try:
+        jobs = asyncio.run(_collect_jobs(search_profile, existing_urls))
+    except Exception as e:
+        raise RuntimeError(str(e)) from e
     if not jobs:
         return 0, 0, 0
 
