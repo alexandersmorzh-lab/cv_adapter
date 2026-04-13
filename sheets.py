@@ -23,20 +23,14 @@ SCOPES = [
 ]
 _log = logging.getLogger(__name__)
 
-
-def _get_base_dir() -> Path:
-    """Возвращает папку рядом с exe или со скриптом."""
-    if getattr(sys, "frozen", False):
-        return Path(sys.executable).parent
-    return Path(__file__).resolve().parent
-
-
 def _get_token_dir() -> Path:
     """Возвращает стабильную директорию для хранения token.json."""
     if config.TOKEN_DIR:
-        path = Path(config.TOKEN_DIR).expanduser()
+        path = config.resolve_writable_path(config.TOKEN_DIR)
+    elif getattr(sys, "frozen", False) and sys.platform == "darwin":
+        path = config.get_preferred_user_data_dir()
     elif getattr(sys, "frozen", False):
-        path = _get_base_dir()
+        path = config.BASE_DIR
     else:
         return Path(__file__).resolve().parent
 
@@ -85,7 +79,7 @@ def _load_saved_credentials(token_path: Path) -> Optional[Credentials]:
 def _authenticate() -> gspread.Client:
     """OAuth-авторизация. При первом запуске открывает браузер."""
     token_path = get_token_path()
-    secret_path = _get_base_dir() / config.CLIENT_SECRET_FILE
+    secret_path = config.find_existing_data_file(config.CLIENT_SECRET_FILE)
 
     _log.debug("OAuth: token_path=%s secret=%s", token_path, secret_path)
 
@@ -107,10 +101,21 @@ def _authenticate() -> gspread.Client:
             print("[OAuth] Обновляем токен доступа...", flush=True)
             creds.refresh(Request())
         else:
-            if not secret_path.exists():
+            if secret_path is None:
+                searched_paths = config.get_candidate_file_paths(config.CLIENT_SECRET_FILE)
+                searched_lines = "\n".join(f"  - {path}" for path in searched_paths)
+                macos_hint = ""
+                if getattr(sys, "frozen", False) and sys.platform == "darwin":
+                    preferred_path = config.resolve_data_file(config.CLIENT_SECRET_FILE)
+                    macos_hint = (
+                        "\nНа macOS файл рядом с .app может не находиться из-за App Translocation."
+                        f"\nПоложите client_secret.json сюда: {preferred_path}"
+                        "\nИли укажите абсолютный путь через CLIENT_SECRET_FILE в .env."
+                    )
                 raise FileNotFoundError(
-                    f"Файл OAuth-credentials не найден: {secret_path}\n"
-                    "Скачайте его из Google Cloud Console и положите рядом с программой."
+                    "Файл OAuth-credentials не найден.\n"
+                    f"Проверены пути:\n{searched_lines}"
+                    f"{macos_hint}"
                 )
             print("[OAuth] Требуется новая авторизация через браузер", flush=True)
             _log.debug("OAuth: полный логин через браузер (локальный сервер :8080)")

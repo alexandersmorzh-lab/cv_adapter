@@ -10,6 +10,7 @@ import os
 import io
 from pathlib import Path
 
+import config
 import sheets
 
 class CVAdapterGUI:
@@ -263,6 +264,11 @@ class CVAdapterGUI:
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
         self._update_button_states(running=False)
+        self._log_startup_messages()
+
+    def _log_startup_messages(self):
+        for message in config.RUNTIME_BOOTSTRAP_MESSAGES:
+            self.log(f"[setup] {message}")
 
     def log(self, message):
         self.log_text.config(state='normal')

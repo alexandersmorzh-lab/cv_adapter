@@ -2,8 +2,10 @@
 config.py — загрузка настроек из .env файла
 """
 import os
+import shutil
 import sys
 from pathlib import Path
+from typing import Iterable
 from dotenv import load_dotenv
 
 # Исправление кодировки для Windows (чтобы печатать Unicode символы)
@@ -12,15 +14,159 @@ if sys.stdout:
 if sys.stderr:
     sys.stderr.reconfigure(encoding='utf-8')
 
-# Ищем .env рядом с exe или рядом со скриптом
-if getattr(sys, 'frozen', False):
-    # Running as bundled exe
-    BASE_DIR = Path(sys.executable).resolve().parent
-else:
-    # Running as script
-    BASE_DIR = Path(__file__).resolve().parent
+APP_NAME = "CVAdapter"
+IS_FROZEN = bool(getattr(sys, "frozen", False))
+SCRIPT_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(sys.executable).resolve().parent if IS_FROZEN else SCRIPT_DIR
+DEFAULT_CLIENT_SECRET_FILE = "client_secret.json"
+DEFAULT_SYSTEM_PROMPT_FILE = "system_prompt.txt"
+DEFAULT_ENV_FILE = ".env"
+DEFAULT_ENV_TEMPLATE_FILE = ".env.example"
 
-load_dotenv(BASE_DIR / ".env")
+
+def _unique_paths(paths: Iterable[Path]) -> list[Path]:
+    unique: list[Path] = []
+    seen: set[str] = set()
+    for path in paths:
+        normalized = str(path.expanduser())
+        if normalized in seen:
+            continue
+        seen.add(normalized)
+        unique.append(path.expanduser())
+    return unique
+
+
+def get_bundle_resources_dir() -> Path | None:
+    if IS_FROZEN and sys.platform == "darwin":
+        resources_dir = BASE_DIR.parent / "Resources"
+        return resources_dir
+    return None
+
+
+def get_macos_app_bundle_dir() -> Path | None:
+    if not (IS_FROZEN and sys.platform == "darwin"):
+        return None
+    contents_dir = BASE_DIR.parent
+    if contents_dir.name != "Contents":
+        return None
+    app_dir = contents_dir.parent
+    if app_dir.suffix != ".app":
+        return None
+    return app_dir
+
+
+def get_preferred_user_data_dir() -> Path:
+    if IS_FROZEN and sys.platform == "darwin":
+        return Path.home() / "Library" / "Application Support" / APP_NAME
+    return BASE_DIR
+
+
+def get_runtime_search_dirs() -> list[Path]:
+    dirs: list[Path] = []
+
+    if IS_FROZEN and sys.platform == "darwin":
+        dirs.append(get_preferred_user_data_dir())
+
+    dirs.append(Path.cwd())
+    dirs.append(BASE_DIR)
+
+    resources_dir = get_bundle_resources_dir()
+    if resources_dir is not None:
+        dirs.append(resources_dir)
+
+    app_bundle_dir = get_macos_app_bundle_dir()
+    if app_bundle_dir is not None:
+        dirs.append(app_bundle_dir.parent)
+
+    dirs.append(SCRIPT_DIR)
+    return _unique_paths(dirs)
+
+
+def get_candidate_file_paths(file_name: str, *, extra_dirs: Iterable[Path] | None = None) -> list[Path]:
+    path = Path(file_name).expanduser()
+    if path.is_absolute():
+        return [path]
+
+    search_dirs = list(extra_dirs or []) + get_runtime_search_dirs()
+    return [directory / path for directory in _unique_paths(search_dirs)]
+
+
+def find_existing_data_file(file_name: str, *, extra_dirs: Iterable[Path] | None = None) -> Path | None:
+    for candidate in get_candidate_file_paths(file_name, extra_dirs=extra_dirs):
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def resolve_data_file(file_name: str, *, extra_dirs: Iterable[Path] | None = None) -> Path:
+    existing = find_existing_data_file(file_name, extra_dirs=extra_dirs)
+    if existing is not None:
+        return existing
+
+    path = Path(file_name).expanduser()
+    if path.is_absolute():
+        return path
+    return get_preferred_user_data_dir() / path
+
+
+def resolve_writable_path(path_value: str) -> Path:
+    path = Path(path_value).expanduser()
+    if path.is_absolute():
+        return path
+    return get_preferred_user_data_dir() / path
+
+
+def _copy_first_available_file(source_names: Iterable[str], target_name: str) -> str | None:
+    target_path = get_preferred_user_data_dir() / target_name
+    if target_path.exists():
+        return None
+
+    for source_name in source_names:
+        source_path = find_existing_data_file(source_name)
+        if source_path is None or source_path == target_path:
+            continue
+
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_path, target_path)
+        return f"Подготовлен файл {target_name}: {target_path}"
+
+    return None
+
+
+def bootstrap_runtime_support_files() -> list[str]:
+    messages: list[str] = []
+    if not (IS_FROZEN and sys.platform == "darwin"):
+        return messages
+
+    target_dir = get_preferred_user_data_dir()
+    if not target_dir.exists():
+        target_dir.mkdir(parents=True, exist_ok=True)
+        messages.append(f"Создана рабочая папка macOS: {target_dir}")
+
+    for source_names, target_name in (
+        ((DEFAULT_ENV_FILE, DEFAULT_ENV_TEMPLATE_FILE), DEFAULT_ENV_FILE),
+        ((DEFAULT_CLIENT_SECRET_FILE,), DEFAULT_CLIENT_SECRET_FILE),
+        ((DEFAULT_SYSTEM_PROMPT_FILE,), DEFAULT_SYSTEM_PROMPT_FILE),
+    ):
+        copied_message = _copy_first_available_file(source_names, target_name)
+        if copied_message:
+            messages.append(copied_message)
+
+    client_secret_path = target_dir / DEFAULT_CLIENT_SECRET_FILE
+    if not client_secret_path.exists():
+        messages.append(
+            f"Добавьте {DEFAULT_CLIENT_SECRET_FILE} в {target_dir} перед первой авторизацией Google"
+        )
+
+    return messages
+
+
+RUNTIME_BOOTSTRAP_MESSAGES = bootstrap_runtime_support_files()
+
+
+ENV_FILE = find_existing_data_file(".env")
+if ENV_FILE is not None:
+    load_dotenv(ENV_FILE)
 
 
 def get(key: str, default: str = "") -> str:
@@ -99,7 +245,7 @@ LINKEDIN_AUTO_START_BROWSER: bool = _env_bool("LINKEDIN_AUTO_START_BROWSER", Tru
 LINKEDIN_BROWSER_PATH: str = get("LINKEDIN_BROWSER_PATH", "")
 LINKEDIN_BROWSER_USER_DATA_DIR: str = get(
     "LINKEDIN_BROWSER_USER_DATA_DIR",
-    str(BASE_DIR / ".chrome-debug-profile"),
+    str(get_preferred_user_data_dir() / ".chrome-debug-profile"),
 )
 LINKEDIN_BROWSER_START_URL: str = get("LINKEDIN_BROWSER_START_URL", "https://www.linkedin.com/feed/")
 LINKEDIN_SCRAPE_CAP: int = int(get("LINKEDIN_SCRAPE_CAP", "60") or "60")

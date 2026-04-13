@@ -113,7 +113,12 @@ def build_exe(platform="auto"):
                 print(f"\n✓ Готово! Файл успешно обновлён: {output_name}")
                 file_size = os.path.getsize(output_name) / 1024 / 1024
                 print(f"  Размер: {file_size:.1f} МБ")
-                print("  Положите рядом с ним: .env, system_prompt.txt и client_secret.json")
+                if ext == ".app":
+                    print("  При первом запуске macOS-версия сама создаст ~/Library/Application Support/CVAdapter/")
+                    print("  Если получится, она сама скопирует туда .env/.env.example и system_prompt.txt")
+                    print("  Если client_secret.json не скопируется автоматически, положите его в эту папку вручную")
+                else:
+                    print("  Положите рядом с ним: .env, system_prompt.txt и client_secret.json")
                 print("  Запустите двойным кликом!")
             else:
                 print(f"\n⚠ ОШИБКА: Файл {output_name} не был обновлён!")

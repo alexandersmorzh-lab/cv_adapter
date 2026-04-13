@@ -6,7 +6,7 @@
 
 ## Быстрый старт
 
-### Что нужно в папке рядом с исполняемым файлом:
+### Что нужно рядом с приложением или в рабочей папке:
 ```
 CVAdapter.exe (или CVAdapter.app)
 .env                  ← ваши настройки
@@ -20,6 +20,14 @@ system_prompt.txt     ← системный промпт для AI
 - **Linux**: `./CVAdapter` в терминале
 
 GUI откроется с кнопками для запуска задач и окном логов.
+
+Для macOS есть важное исключение: из-за App Translocation файлы рядом с `CVAdapter.app` могут не находиться. Надёжное место для `.env`, `client_secret.json`, `token.json` и при необходимости `system_prompt.txt`:
+
+```text
+~/Library/Application Support/CVAdapter/
+```
+
+Новая macOS-сборка при запуске сама создаёт эту папку и, если может, копирует туда `.env`, `.env.example`, `system_prompt.txt` и `client_secret.json`. Если `client_secret.json` недоступен для автокопирования, приложение подскажет, куда его положить.
 
 ---
 
@@ -67,6 +75,7 @@ python build.py --linux
 - инструкция `MACOS_SETUP.md`
 
 > Первая версия CI-сборки не подписана Apple certificate, поэтому на macOS может понадобиться запуск через **Right click → Open**.
+> Если macOS продолжает запускать приложение через App Translocation, снимите quarantine: `xattr -dr com.apple.quarantine CVAdapter.app`
 
 ---
 
@@ -166,7 +175,7 @@ ID таблицы — длинная строка между `/d/` и `/edit` в
 Двойной клик на `CVAdapter.exe`.
 
 При первом запуске откроется браузер для авторизации Google.
-Токен сохранится в `token.json` — повторная авторизация не нужна.
+На macOS токен надёжнее всего хранится в `~/Library/Application Support/CVAdapter/token.json`.
 
 ---
 

@@ -65,6 +65,9 @@ def main():
     print("  CV Adapter — адаптация резюме под вакансии", flush=True)
     print("=" * 60, flush=True)
 
+    for message in config.RUNTIME_BOOTSTRAP_MESSAGES:
+        print(f"[setup] {message}", flush=True)
+
     # Определяем режим работы из аргументов командной строки
     mode = _get_mode()
 

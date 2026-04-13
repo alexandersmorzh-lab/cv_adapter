@@ -1,8 +1,6 @@
 """
 prompts.py — промпты для генерации адаптированного резюме
 """
-import sys
-from pathlib import Path
 import config
 
 PROMPT_FILE = "system_prompt.txt"
@@ -20,20 +18,13 @@ DEFAULT_SYSTEM_PROMPT = """Ты — профессиональный HR-конс
 7. Верни только текст адаптированного резюме — без пояснений и комментариев.
 """
 
-
-def _get_base_dir() -> Path:
-    if getattr(sys, "frozen", False):
-        return Path(sys.executable).parent
-    return Path(__file__).resolve().parent
-
-
 def get_system_prompt() -> str:
     """Читает промпт из system_prompt.txt или возвращает дефолтный."""
-    prompt_path = _get_base_dir() / PROMPT_FILE
-    if prompt_path.exists():
+    prompt_path = config.find_existing_data_file(PROMPT_FILE)
+    if prompt_path and prompt_path.exists():
         text = prompt_path.read_text(encoding="utf-8").strip()
         if text:
-            print(f"      ℹ Используется промпт из {PROMPT_FILE}")
+            print(f"      ℹ Используется промпт из {prompt_path}")
             return text
     return DEFAULT_SYSTEM_PROMPT
 

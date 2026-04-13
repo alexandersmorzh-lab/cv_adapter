@@ -43,12 +43,19 @@
 
 ## Что сделать после скачивания на Mac
 
-1. Скопировать `.env.example` в `.env`
-2. Заполнить `.env` нужными ключами
-3. Положить рядом `client_secret.json`
-4. Запустить `CVAdapter.app`
+1. Запустить `CVAdapter.app` один раз
+2. Приложение само создаст `~/Library/Application Support/CVAdapter/`
+3. Если сможет, оно само скопирует туда `.env` или `.env.example`, а также `system_prompt.txt`
+4. Если `client_secret.json` не скопировался автоматически, положить его в `~/Library/Application Support/CVAdapter/`
+5. Запустить `CVAdapter.app` повторно
 
-При первом входе Google OAuth создаст `token.json` автоматически.
+При первом входе Google OAuth создаст `token.json` в `~/Library/Application Support/CVAdapter/` автоматически.
+
+Почему не стоит рассчитывать на файлы рядом с `.app`:
+
+- неподписанное приложение может запускаться через App Translocation
+- тогда путь рядом с `.app` становится временным и не совпадает с реальной папкой пользователя
+- папка `~/Library/Application Support/CVAdapter/` стабильна и для чтения, и для записи
 
 ---
 
@@ -67,6 +74,11 @@
 
 - открой **System Settings → Privacy & Security**
 - вручную разреши запуск приложения
+- если приложение всё равно стартует из временного каталога, сними quarantine:
+
+```bash
+xattr -dr com.apple.quarantine CVAdapter.app
+```
 
 ---
 
