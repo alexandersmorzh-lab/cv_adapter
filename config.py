@@ -61,11 +61,29 @@ def get_preferred_user_data_dir() -> Path:
     return BASE_DIR
 
 
+def get_easy_access_data_dir() -> Path | None:
+    if IS_FROZEN and sys.platform == "darwin":
+        return Path.home() / "Documents" / APP_NAME
+    return None
+
+
+def get_shared_macos_data_dir() -> Path | None:
+    if IS_FROZEN and sys.platform == "darwin":
+        return Path("/Library/Application Support") / APP_NAME
+    return None
+
+
 def get_runtime_search_dirs() -> list[Path]:
     dirs: list[Path] = []
 
     if IS_FROZEN and sys.platform == "darwin":
         dirs.append(get_preferred_user_data_dir())
+        easy_access_dir = get_easy_access_data_dir()
+        if easy_access_dir is not None:
+            dirs.append(easy_access_dir)
+        shared_dir = get_shared_macos_data_dir()
+        if shared_dir is not None:
+            dirs.append(shared_dir)
 
     dirs.append(Path.cwd())
     dirs.append(BASE_DIR)
@@ -116,6 +134,17 @@ def resolve_writable_path(path_value: str) -> Path:
     return get_preferred_user_data_dir() / path
 
 
+def install_data_file(source_path: str | Path, target_name: str) -> Path:
+    source = Path(source_path).expanduser()
+    if not source.exists():
+        raise FileNotFoundError(f"Файл не найден: {source}")
+
+    target_path = get_preferred_user_data_dir() / target_name
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source, target_path)
+    return target_path
+
+
 def _copy_first_available_file(source_names: Iterable[str], target_name: str) -> str | None:
     target_path = get_preferred_user_data_dir() / target_name
     if target_path.exists():
@@ -128,7 +157,7 @@ def _copy_first_available_file(source_names: Iterable[str], target_name: str) ->
 
         target_path.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source_path, target_path)
-        return f"Подготовлен файл {target_name}: {target_path}"
+        return f"Подготовлен файл {target_name}: {target_path} (источник: {source_path})"
 
     return None
 
@@ -154,8 +183,12 @@ def bootstrap_runtime_support_files() -> list[str]:
 
     client_secret_path = target_dir / DEFAULT_CLIENT_SECRET_FILE
     if not client_secret_path.exists():
+        easy_access_dir = get_easy_access_data_dir()
+        easy_access_hint = ""
+        if easy_access_dir is not None:
+            easy_access_hint = f" или в {easy_access_dir}"
         messages.append(
-            f"Добавьте {DEFAULT_CLIENT_SECRET_FILE} в {target_dir} перед первой авторизацией Google"
+            f"Добавьте {DEFAULT_CLIENT_SECRET_FILE} в {target_dir}{easy_access_hint} перед первой авторизацией Google"
         )
 
     return messages

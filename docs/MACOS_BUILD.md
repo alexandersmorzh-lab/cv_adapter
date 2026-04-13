@@ -47,7 +47,8 @@
 2. Приложение само создаст `~/Library/Application Support/CVAdapter/`
 3. Если сможет, оно само скопирует туда `.env` или `.env.example`, а также `system_prompt.txt`
 4. Если `client_secret.json` не скопировался автоматически, положить его в `~/Library/Application Support/CVAdapter/`
-5. Запустить `CVAdapter.app` повторно
+5. Если папку `Library` пользователю сложно найти, можно вместо этого положить `.env` и `client_secret.json` в `~/Documents/CVAdapter/`
+6. Запустить `CVAdapter.app` повторно
 
 При первом входе Google OAuth создаст `token.json` в `~/Library/Application Support/CVAdapter/` автоматически.
 

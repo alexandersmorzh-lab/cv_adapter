@@ -3,7 +3,7 @@ GUI для CV Adapter - простой интерфейс для запуска 
 """
 
 import tkinter as tk
-from tkinter import scrolledtext, messagebox, font, ttk
+from tkinter import filedialog, scrolledtext, messagebox, font, ttk
 import sys
 import threading
 import os
@@ -327,6 +327,51 @@ class CVAdapterGUI:
         thread.daemon = True
         thread.start()
 
+    def _run_on_ui_thread(self, func):
+        done = threading.Event()
+        result = {"value": None, "error": None}
+
+        def wrapper():
+            try:
+                result["value"] = func()
+            except Exception as exc:
+                result["error"] = exc
+            finally:
+                done.set()
+
+        self.root.after(0, wrapper)
+        done.wait()
+        if result["error"] is not None:
+            raise result["error"]
+        return result["value"]
+
+    def _prompt_for_client_secret_file(self) -> str:
+        def prompt():
+            proceed = messagebox.askyesno(
+                "OAuth credentials не найдены",
+                "Не удалось найти client_secret.json автоматически.\n\n"
+                "Выбрать файл вручную сейчас?",
+            )
+            if not proceed:
+                return ""
+
+            return filedialog.askopenfilename(
+                title="Выберите client_secret.json",
+                filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
+            )
+
+        return self._run_on_ui_thread(prompt)
+
+    def _ensure_client_secret_via_dialog(self) -> bool:
+        selected_path = self._prompt_for_client_secret_file()
+        if not selected_path:
+            self.log("Выбор файла отменён пользователем.")
+            return False
+
+        target_path = config.install_data_file(selected_path, config.CLIENT_SECRET_FILE)
+        self.log(f"✓ client_secret.json скопирован в {target_path}")
+        return True
+
     def _run_subprocess(self, mode):
         import main as main_module
         
@@ -342,6 +387,13 @@ class CVAdapterGUI:
                     sheets.authenticate()
                     self.log("✓ Авторизация успешна!")
                     self.log(f"[DEBUG] Token сохранён: {token_path.exists()}")
+                except FileNotFoundError as e:
+                    self.log(f"⚠ OAuth-файл не найден: {e}")
+                    if not self._ensure_client_secret_via_dialog():
+                        return
+                    self.log("Повторяем авторизацию с выбранным файлом...")
+                    sheets.authenticate()
+                    self.log("✓ Авторизация успешна!")
                 except Exception as e:
                     self.log(f"❌ Ошибка авторизации: {e}")
                     return

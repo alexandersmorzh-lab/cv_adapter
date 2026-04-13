@@ -107,9 +107,14 @@ def _authenticate() -> gspread.Client:
                 macos_hint = ""
                 if getattr(sys, "frozen", False) and sys.platform == "darwin":
                     preferred_path = config.resolve_data_file(config.CLIENT_SECRET_FILE)
+                    easy_access_path = None
+                    easy_access_dir = config.get_easy_access_data_dir()
+                    if easy_access_dir is not None:
+                        easy_access_path = easy_access_dir / config.CLIENT_SECRET_FILE
                     macos_hint = (
                         "\nНа macOS файл рядом с .app может не находиться из-за App Translocation."
                         f"\nПоложите client_secret.json сюда: {preferred_path}"
+                        + (f"\nИли в более простую папку: {easy_access_path}" if easy_access_path else "")
                         "\nИли укажите абсолютный путь через CLIENT_SECRET_FILE в .env."
                     )
                 raise FileNotFoundError(

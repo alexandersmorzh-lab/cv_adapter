@@ -15,7 +15,10 @@ The GitHub Actions build produces a ZIP archive with:
 2. If available, the app will also copy `.env` or `.env.example` and `system_prompt.txt` there automatically.
 3. If the copied `.env` still contains placeholders, edit it and fill in the required keys.
 4. Put your own `client_secret.json` into `~/Library/Application Support/CVAdapter/` if the app did not copy it itself.
-5. On the first Google authorization, `token.json` will be created in the same folder automatically
+5. If `Library` is hard to find, you can instead put `.env` and `client_secret.json` into `~/Documents/CVAdapter/`.
+6. On the first Google authorization, `token.json` will be created in the same folder automatically
+
+If `client_secret.json` is still not found, the GUI build will offer a standard file picker so the user can select the JSON file manually. The app will then copy it into the runtime folder automatically.
 
 Recommended layout:
 
