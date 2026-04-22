@@ -294,6 +294,7 @@ COL_SUMMARY_SCORING: str = get("COL_SUMMARY_SCORING", "SummaryScoring")
 COL_WRONG_PHRASES: str = get("COL_WRONG_PHRASES", "WrongPhrases")
 COL_TRACKER_ID: str = get("COL_TRACKER_ID", "TrackerID")
 COL_NEW_CV_FILE: str = get("COL_NEW_CV_FILE", "New CV File")
+COL_NEW_CV_TEXT: str = get("COL_NEW_CV_TEXT", "New CV text")
 
 # Google Docs (для адаптированных резюме)
 # CV_TEMPLATE_DOC_ID — ID Google Doc шаблона (из Master CV, раздел "CV Doc Template")
@@ -301,6 +302,15 @@ COL_NEW_CV_FILE: str = get("COL_NEW_CV_FILE", "New CV File")
 CV_TEMPLATE_DOC_ID: str = ""  # заполняется из Master CV
 ADAPTED_CVS_FOLDER_ID: str = ""  # заполняется из Master CV
 ADAPTED_CVS_FOLDER_NAME: str = get("ADAPTED_CVS_FOLDER_NAME", "Adapted_CVs")
+
+# Детекция cover letter в промпте.
+# Если system_prompt содержит любой из этих маркеров (регистр игнорируется),
+# генерация будет разбита на два LLM-вызова: первый — CV, второй — Hook + Cover Letter.
+# Настраивается через .env: COVER_LETTER_MARKERS=cover letter,hook,сопроводительное
+_default_cl_markers = "cover letter,covering letter,сопроводительное письмо,hook,хук,opening paragraph"
+COVER_LETTER_MARKERS: list[str] = [
+    m.strip() for m in get("COVER_LETTER_MARKERS", _default_cl_markers).split(",") if m.strip()
+]
 
 # Analyzer
 MIN_SUMMARY_SCORE: float = float(get("MIN_SUMMARY_SCORE", "0") or "0")
@@ -335,8 +345,14 @@ CLIENT_SECRET_FILE: str = get("CLIENT_SECRET_FILE", "client_secret.json")
 TOKEN_FILE: str = get("TOKEN_FILE", "token.json")
 TOKEN_DIR: str = get("TOKEN_DIR", "")
 
+# Master CV
+# Имя строки в листе Master CV, из которой брать системный промпт для адаптации.
+# По умолчанию: System_prompt. Можно задать, например, System_prompt_NL.
+MASTER_CV_SYSTEM_PROMPT_LABEL: str = get("MASTER_CV_SYSTEM_PROMPT_LABEL", "System_prompt")
+
 # LLM
 LLM_PROVIDER: str = get("LLM_PROVIDER", "gemini")   # gemini | openai | groq | cerebras
+# Устаревшие глобальные модели (legacy fallback), используются только если у провайдера не задана модель.
 LLM_MODEL_GENERATION: str = get("LLM_MODEL_GENERATION", "")
 LLM_MODEL_SCORING: str = get("LLM_MODEL_SCORING", "")
 GEMINI_API_KEY: str = get("GEMINI_API_KEY")

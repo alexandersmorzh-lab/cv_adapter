@@ -39,13 +39,23 @@ def _setup_io_and_logging() -> None:
 
     # Запросы Google Sheets / httpx иначе засыпают консоль при DEBUG=1
     if config.DEBUG and not config.DEBUG_HTTP:
-        for name in (
+        # Список низкоуровневых библиотек, которые засоряют консоль деталями транспорта и протокола
+        noisy_loggers = (
             "urllib3",
             "urllib3.connectionpool",
             "httpx",
             "httpcore",
             "google.auth.transport.requests",
-        ):
+            "hpack",
+            "hpack.encoder",
+            "hpack.decoder",
+            "h2",
+            "h2.connection",
+            "h2.frame_dispatching",
+            "cerebras",
+            "googleapiclient",
+        )
+        for name in noisy_loggers:
             logging.getLogger(name).setLevel(logging.WARNING)
 
     log = logging.getLogger(__name__)
@@ -198,6 +208,21 @@ def _run_analyzer(client: gspread.Client, base_cv: str):
 def _run_adapter(client: gspread.Client, base_cv: str):
     """Запускает адаптацию резюме для строк из Tracker."""
     print("\n[2/2] Resume Adapter: создание адаптированных резюме...", flush=True)
+    model_info = llm.get_effective_model_info("generation")
+    print(
+        f"    Используется модель: {model_info['model']} "
+        f"(provider={model_info['provider']}, source={model_info['source']})",
+        flush=True,
+    )
+    try:
+        prompt_meta = sheets.get_master_cv_metadata(client)
+        actual_prompt_label = (prompt_meta.get("system_prompt_label") or "").strip()
+        if actual_prompt_label:
+            print(f"    Используется промпт: {actual_prompt_label}", flush=True)
+        else:
+            print("    Используется промпт: (не найден в Master CV)", flush=True)
+    except Exception:
+        print("    Используется промпт: (не удалось определить из Master CV)", flush=True)
     try:
         processed_ok, processed_total = resume_adapter.run_resume_adapter(
             client=client,

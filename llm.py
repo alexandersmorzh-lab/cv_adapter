@@ -4,8 +4,18 @@ llm.py — универсальный адаптер для LLM.
 Поддерживаемые провайдеры: gemini | openai | groq | cerebras
 """
 import json
+import hashlib
+import logging
 import config
 from prompts import get_system_prompt, build_user_prompt
+
+
+_log = logging.getLogger(__name__)
+
+
+def _prompt_fingerprint(text: str) -> str:
+    """Короткий отпечаток для проверки, что реально отправили в LLM (без логирования текста)."""
+    return hashlib.sha256((text or "").encode("utf-8")).hexdigest()[:12]
 
 
 def generate_adapted_cv(base_cv: str, job_description: str) -> str:
@@ -22,51 +32,133 @@ def generate_adapted_cv(base_cv: str, job_description: str) -> str:
 
 def generate_text(*, system_prompt: str, user_prompt: str, temperature: float = 0.2, model_kind: str = "scoring") -> str:
     """Универсальный вызов LLM для произвольных задач (в т.ч. Analyzer)."""
-    provider = config.LLM_PROVIDER.lower()
+    model_info = get_effective_model_info(model_kind)
+    provider = model_info["provider"]
+    model_name = model_info["model"]
+    model_source = model_info["source"]
+    resolution_warning = model_info.get("warning", "")
+
+    if resolution_warning:
+        _log.warning("LLM model resolution: %s", resolution_warning)
+
+    _log.info(
+        "LLM request: provider=%s model=%s source=%s kind=%s temp=%.3f sys_fp=%s user_fp=%s sys_len=%d user_len=%d",
+        provider,
+        model_name,
+        model_source,
+        model_kind,
+        float(temperature),
+        _prompt_fingerprint(system_prompt),
+        _prompt_fingerprint(user_prompt),
+        len(system_prompt or ""),
+        len(user_prompt or ""),
+    )
 
     if provider == "gemini":
-        return _gemini_raw(system_prompt=system_prompt, user_prompt=user_prompt, model_kind=model_kind)
+        return _gemini_raw(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            temperature=temperature,
+            model_name=model_name,
+        )
     if provider == "openai":
-        return _openai_raw(system_prompt=system_prompt, user_prompt=user_prompt, temperature=temperature, model_kind=model_kind)
+        return _openai_raw(system_prompt=system_prompt, user_prompt=user_prompt, temperature=temperature, model_name=model_name)
     if provider == "groq":
-        return _groq_raw(system_prompt=system_prompt, user_prompt=user_prompt, temperature=temperature, model_kind=model_kind)
+        return _groq_raw(system_prompt=system_prompt, user_prompt=user_prompt, temperature=temperature, model_name=model_name)
     if provider == "cerebras":
-        return _cerebras_raw(system_prompt=system_prompt, user_prompt=user_prompt, temperature=temperature, model_kind=model_kind)
+        return _cerebras_raw(system_prompt=system_prompt, user_prompt=user_prompt, temperature=temperature, model_name=model_name)
     raise ValueError(f"Неизвестный LLM_PROVIDER: '{provider}'. Допустимые значения: gemini, openai, groq, cerebras")
+
+
+def _provider_model_override(provider: str, model_kind: str) -> str:
+    if provider == "gemini":
+        return config.GEMINI_MODEL_GENERATION if model_kind == "generation" else config.GEMINI_MODEL_SCORING
+    if provider == "openai":
+        return config.OPENAI_MODEL_GENERATION if model_kind == "generation" else config.OPENAI_MODEL_SCORING
+    if provider == "groq":
+        return config.GROQ_MODEL_GENERATION if model_kind == "generation" else config.GROQ_MODEL_SCORING
+    if provider == "cerebras":
+        return config.CEREBRAS_MODEL_GENERATION if model_kind == "generation" else config.CEREBRAS_MODEL_SCORING
+    return ""
+
+
+def _provider_default_model(provider: str) -> str:
+    if provider == "gemini":
+        return config.GEMINI_MODEL
+    if provider == "openai":
+        return config.OPENAI_MODEL
+    if provider == "groq":
+        return config.GROQ_MODEL
+    if provider == "cerebras":
+        return config.CEREBRAS_MODEL
+    return ""
+
+
+def get_effective_model_info(model_kind: str = "generation") -> dict[str, str]:
+    """Возвращает модель для активного провайдера и источник, почему выбрана именно она."""
+    kind = (model_kind or "").strip().lower()
+    if kind not in {"generation", "scoring"}:
+        raise ValueError(f"Неизвестный model_kind: '{model_kind}'. Допустимые значения: generation, scoring")
+
+    provider = (config.LLM_PROVIDER or "").strip().lower()
+    if provider not in {"gemini", "openai", "groq", "cerebras"}:
+        raise ValueError(f"Неизвестный LLM_PROVIDER: '{provider}'. Допустимые значения: gemini, openai, groq, cerebras")
+
+    generic_model = config.LLM_MODEL_GENERATION if kind == "generation" else config.LLM_MODEL_SCORING
+    provider_override = _provider_model_override(provider, kind)
+    provider_default = _provider_default_model(provider)
+
+    if provider_override:
+        warning = ""
+        if generic_model:
+            warning = (
+                f"{kind}: заполнены и provider-specific, и generic LLM_MODEL_*; "
+                f"используется provider-specific '{provider_override}', generic '{generic_model}' игнорируется"
+            )
+        return {
+            "provider": provider,
+            "model": provider_override,
+            "source": f"provider_{kind}",
+            "warning": warning,
+        }
+
+    if provider_default:
+        warning = ""
+        if generic_model:
+            warning = (
+                f"{kind}: для провайдера '{provider}' используется default '{provider_default}'; "
+                f"generic '{generic_model}' игнорируется"
+            )
+        return {
+            "provider": provider,
+            "model": provider_default,
+            "source": "provider_default",
+            "warning": warning,
+        }
+
+    if generic_model:
+        return {
+            "provider": provider,
+            "model": generic_model,
+            "source": f"legacy_generic_{kind}",
+            "warning": (
+                f"{kind}: для провайдера '{provider}' не задана модель; используется legacy generic '{generic_model}'"
+            ),
+        }
+
+    raise ValueError(
+        f"Не задана модель для провайдера '{provider}' (kind={kind}). "
+        f"Укажите provider-specific модель или базовую модель провайдера в .env"
+    )
 
 
 def _get_model_name(model_kind: str) -> str:
-    if model_kind == "generation" and config.LLM_MODEL_GENERATION:
-        return config.LLM_MODEL_GENERATION
-    if model_kind == "scoring" and config.LLM_MODEL_SCORING:
-        return config.LLM_MODEL_SCORING
+    return get_effective_model_info(model_kind)["model"]
 
-    provider = config.LLM_PROVIDER.lower()
-    if provider == "gemini":
-        if model_kind == "generation" and config.GEMINI_MODEL_GENERATION:
-            return config.GEMINI_MODEL_GENERATION
-        if model_kind == "scoring" and config.GEMINI_MODEL_SCORING:
-            return config.GEMINI_MODEL_SCORING
-        return config.GEMINI_MODEL
-    if provider == "openai":
-        if model_kind == "generation" and config.OPENAI_MODEL_GENERATION:
-            return config.OPENAI_MODEL_GENERATION
-        if model_kind == "scoring" and config.OPENAI_MODEL_SCORING:
-            return config.OPENAI_MODEL_SCORING
-        return config.OPENAI_MODEL
-    if provider == "groq":
-        if model_kind == "generation" and config.GROQ_MODEL_GENERATION:
-            return config.GROQ_MODEL_GENERATION
-        if model_kind == "scoring" and config.GROQ_MODEL_SCORING:
-            return config.GROQ_MODEL_SCORING
-        return config.GROQ_MODEL
-    if provider == "cerebras":
-        if model_kind == "generation" and config.CEREBRAS_MODEL_GENERATION:
-            return config.CEREBRAS_MODEL_GENERATION
-        if model_kind == "scoring" and config.CEREBRAS_MODEL_SCORING:
-            return config.CEREBRAS_MODEL_SCORING
-        return config.CEREBRAS_MODEL
-    raise ValueError(f"Неизвестный LLM_PROVIDER: '{provider}'. Допустимые значения: gemini, openai, groq, cerebras")
+
+def get_effective_model_name(model_kind: str = "generation") -> str:
+    """Возвращает фактическое имя модели для выбранного провайдера и типа задачи."""
+    return get_effective_model_info(model_kind)["model"]
 
 
 def generate_json(*, system_prompt: str, user_prompt: str, temperature: float = 0.2) -> dict:
@@ -127,7 +219,7 @@ def _gemini(base_cv: str, job_description: str) -> str:
     return response.text.strip()
 
 
-def _gemini_raw(*, system_prompt: str, user_prompt: str, model_kind: str) -> str:
+def _gemini_raw(*, system_prompt: str, user_prompt: str, temperature: float, model_name: str) -> str:
     try:
         from google import genai
         from google.genai import types
@@ -136,10 +228,11 @@ def _gemini_raw(*, system_prompt: str, user_prompt: str, model_kind: str) -> str
 
     client = genai.Client(api_key=config.GEMINI_API_KEY)
     response = client.models.generate_content(
-        model=_get_model_name(model_kind),
+        model=model_name,
         contents=user_prompt,
         config=types.GenerateContentConfig(
             system_instruction=system_prompt,
+            temperature=float(temperature),
         ),
     )
     return (response.text or "").strip()
@@ -177,7 +270,7 @@ def _openai(base_cv: str, job_description: str) -> str:
     return response.json()["choices"][0]["message"]["content"].strip()
 
 
-def _openai_raw(*, system_prompt: str, user_prompt: str, temperature: float, model_kind: str) -> str:
+def _openai_raw(*, system_prompt: str, user_prompt: str, temperature: float, model_name: str) -> str:
     try:
         import httpx
     except ImportError:
@@ -188,7 +281,7 @@ def _openai_raw(*, system_prompt: str, user_prompt: str, temperature: float, mod
         "Content-Type": "application/json",
     }
     payload = {
-        "model": _get_model_name(model_kind),
+        "model": model_name,
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
@@ -238,7 +331,7 @@ def _groq(base_cv: str, job_description: str) -> str:
     return response.json()["choices"][0]["message"]["content"].strip()
 
 
-def _groq_raw(*, system_prompt: str, user_prompt: str, temperature: float, model_kind: str) -> str:
+def _groq_raw(*, system_prompt: str, user_prompt: str, temperature: float, model_name: str) -> str:
     try:
         import httpx
     except ImportError:
@@ -249,7 +342,7 @@ def _groq_raw(*, system_prompt: str, user_prompt: str, temperature: float, model
         "Content-Type": "application/json",
     }
     payload = {
-        "model": _get_model_name(model_kind),
+        "model": model_name,
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
@@ -291,7 +384,7 @@ def _cerebras(base_cv: str, job_description: str) -> str:
     return completion.choices[0].message.content.strip()
 
 
-def _cerebras_raw(*, system_prompt: str, user_prompt: str, temperature: float, model_kind: str) -> str:
+def _cerebras_raw(*, system_prompt: str, user_prompt: str, temperature: float, model_name: str) -> str:
     try:
         from cerebras.cloud.sdk import Cerebras
     except ImportError:
@@ -303,7 +396,7 @@ def _cerebras_raw(*, system_prompt: str, user_prompt: str, temperature: float, m
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
-        model=_get_model_name(model_kind),
+        model=model_name,
         max_completion_tokens=1024,
         temperature=temperature,
         top_p=1,

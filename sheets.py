@@ -2,6 +2,7 @@
 sheets.py — работа с Google Sheets и Google Docs через OAuth
 """
 import logging
+import re
 import sys
 import os
 from pathlib import Path
@@ -191,14 +192,51 @@ def get_drive_service():
 
 
 def get_base_cv(client: gspread.Client) -> str:
-    """Читает базовое резюме с листа Master CV (всё содержимое листа как текст)."""
+    """
+    Читает базовое резюме с листа Master CV.
+    Извлекает только содержимое CV, исключая служебные строки (System_prompt*, CV Doc Template, и т.п.).
+    """
     _log.debug("Sheets: open spreadsheet=%s sheet=%s", config.SPREADSHEET_ID, config.SHEET_MASTER_CV)
     spreadsheet = client.open_by_key(config.SPREADSHEET_ID)
     worksheet = spreadsheet.worksheet(config.SHEET_MASTER_CV)
     all_values = worksheet.get_all_values()
-    # Объединяем все ячейки в один текст
-    lines = [" | ".join(row).strip(" |") for row in all_values if any(cell.strip() for cell in row)]
-    return "\n".join(lines)
+    
+    # Список ярлыков служебных строк (их второе значение не входит в CV)
+    metadata_labels = {
+        "system_prompt",
+        "cv doc template",
+        "adapted_cvs_folder",
+    }
+    # Все ярлыки, которые начинаются с system_prompt_ (например system_prompt_nl_hook)
+    metadata_prefixes = ("system_prompt_", "cv_doc_template")
+    
+    cv_lines = []
+    
+    for row in all_values:
+        if not any(cell.strip() for cell in row):
+            # Пустая строка
+            continue
+        
+        # Получаем первый элемент (ярлык) и нормализуем для сравнения
+        label = (row[0] or "").strip().lower()
+        
+        # Пропускаем явные метаданные
+        if label in metadata_labels:
+            continue
+        if label.startswith(metadata_prefixes):
+            continue
+        
+        # Добавляем строку в CV
+        line = " | ".join(row).strip(" |")
+        cv_lines.append(line)
+    
+    base_cv = "\n".join(cv_lines)
+    _log.debug(
+        "Sheets: base CV extraction mode=content_only lines=%d length=%d",
+        len(cv_lines),
+        len(base_cv),
+    )
+    return base_cv
 
 
 def get_tracker_rows(client: gspread.Client):
@@ -661,13 +699,20 @@ def authenticate() -> gspread.Client:
 
 # ── Google Docs & Drive Functions ──────────────────────────────────────────
 
+def _looks_like_doc_id(value: str) -> bool:
+    """Проверяет, похоже ли значение на настоящий Google Doc/Drive ID.
+    Реальный ID: 25-60 символов, только буквы, цифры, дефисы и подчёркивания.
+    """
+    return bool(value and 25 <= len(value) <= 60 and re.fullmatch(r"[A-Za-z0-9_\-]+", value))
+
+
 def get_master_cv_metadata(client: gspread.Client) -> dict:
     """Читает специальные поля из листа Master CV (обе колонки A и B).
     
     Ожидает структуру:
       "Master CV" -> содержание базового резюме
       "CV Doc Template" -> ссылка на Google Doc с шаблоном
-      "System_prompt" -> текст системного промпта
+            "System_prompt" или "System_prompt_*" -> текст системного промпта
       "Adapted_CVs_Folder" -> ID папки для хранения резюме (опционально)
     """
     spreadsheet = client.open_by_key(config.SPREADSHEET_ID)
@@ -678,8 +723,16 @@ def get_master_cv_metadata(client: gspread.Client) -> dict:
         "master_cv_text": "",
         "template_doc_id": "",
         "system_prompt": "",
+        "system_prompt_label": "",
         "adapted_cvs_folder_id": "",
+        "applicant": {
+            "name": "",
+            "email": "",
+            "phone": "",
+            "linkedin": "",
+        },
     }
+    prompt_rows: list[tuple[str, str]] = []
     
     # Предполагаем col A - название раздела, col B - значение
     for row in all_values:
@@ -694,15 +747,46 @@ def get_master_cv_metadata(client: gspread.Client) -> dict:
             # Может быть либо полная ссылка, либо просто ID
             if "/d/" in value:
                 result["template_doc_id"] = value.split("/d/")[1].split("/")[0]
-            else:
+            elif _looks_like_doc_id(value):
                 result["template_doc_id"] = value
-        elif label == "system_prompt":
-            result["system_prompt"] = value
+            else:
+                _log.warning(
+                    "Master CV: значение 'CV Doc Template' = %r не похоже на Google Doc URL или ID. "
+                    "Укажите полную ссылку вида https://docs.google.com/document/d/ВАШ_ID/edit "
+                    "или просто ID документа (длинная строка из букв и цифр).",
+                    value,
+                )
+                result["template_doc_id"] = ""
+        elif label == "system_prompt" or label.startswith("system_prompt_"):
+            if value:
+                prompt_rows.append((label, value))
         elif label == "adapted_cvs_folder":
             if "/folders/" in value:
                 result["adapted_cvs_folder_id"] = value.split("/folders/")[1]
             else:
                 result["adapted_cvs_folder_id"] = value
+        elif label == "applicant name":
+            result["applicant"]["name"] = value
+        elif label == "applicant email":
+            result["applicant"]["email"] = value
+        elif label == "applicant phone":
+            result["applicant"]["phone"] = value
+        elif label == "applicant linkedin":
+            result["applicant"]["linkedin"] = value
+
+    preferred_label = (config.MASTER_CV_SYSTEM_PROMPT_LABEL or "System_prompt").strip().lower()
+    prompt_map = {label: value for label, value in prompt_rows}
+
+    if preferred_label in prompt_map:
+        result["system_prompt"] = prompt_map[preferred_label]
+        result["system_prompt_label"] = preferred_label
+    elif "system_prompt" in prompt_map:
+        result["system_prompt"] = prompt_map["system_prompt"]
+        result["system_prompt_label"] = "system_prompt"
+    elif prompt_rows:
+        # Fallback: берём первый найденный System_prompt_* в порядке строк листа.
+        result["system_prompt_label"] = prompt_rows[0][0]
+        result["system_prompt"] = prompt_rows[0][1]
     
     return result
 
@@ -747,3 +831,23 @@ def update_tracker_new_cv_file(
     col = _find_col(headers, config.COL_NEW_CV_FILE)
     if col is not None:
         worksheet.update_cell(row_num, col + 1, doc_link)
+
+
+def write_new_cv_text(
+    worksheet: gspread.Worksheet,
+    row_num: int,
+    headers: list,
+    text: str,
+) -> None:
+    """Записывает сырой LLM-текст резюме в колонку 'New CV text' в Tracker.
+    Если колонка отсутствует — пропускает без ошибки.
+    """
+    col = _find_col(headers, config.COL_NEW_CV_TEXT)
+    if col is not None:
+        worksheet.update_cell(row_num, col + 1, text)
+    else:
+        _log.debug(
+            "Tracker: колонка '%s' не найдена — текст CV не сохранён. "
+            "Добавьте колонку '%s' на лист Tracker для сохранения сырого текста LLM.",
+            config.COL_NEW_CV_TEXT, config.COL_NEW_CV_TEXT,
+        )

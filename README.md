@@ -198,6 +198,14 @@ ID таблицы — длинная строка между `/d/` и `/edit` в
 | `groq`   | Groq (Llama 3) | ✓ лимиты есть |
 | `openai` | OpenAI GPT-4o-mini | платно |
 
+Выбор модели для активного провайдера происходит так:
+
+1. `<PROVIDER>_MODEL_<KIND>` (например, `CEREBRAS_MODEL_GENERATION`)
+2. `<PROVIDER>_MODEL`
+3. `LLM_MODEL_<KIND>` (legacy fallback)
+
+Если одновременно заполнены provider-specific и `LLM_MODEL_*`, используется provider-specific, а `LLM_MODEL_*` игнорируется.
+
 ---
 
 ## Сборка EXE из исходников

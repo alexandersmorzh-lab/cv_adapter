@@ -43,12 +43,19 @@ def run_resume_adapter(client: gspread.Client, base_cv: str, delay_sec: float = 
     master_cv_meta = sheets.get_master_cv_metadata(client)
     template_doc_id = master_cv_meta["template_doc_id"]
     system_prompt = master_cv_meta["system_prompt"]
+    system_prompt_label = master_cv_meta.get("system_prompt_label", "")
     adapted_cvs_folder_id = master_cv_meta["adapted_cvs_folder_id"]
     
     if not template_doc_id:
         raise ValueError("CV Doc Template не найден в листе Master CV (раздел 'CV Doc Template')")
     if not system_prompt:
         raise ValueError("System_prompt не найден в листе Master CV")
+
+    _log.info(
+        "Resume Adapter: используется системный промпт '%s' (длина=%d)",
+        system_prompt_label or "system_prompt",
+        len(system_prompt),
+    )
     
     # Если папка не указана, используем значение из .env или создаём новую
     if not adapted_cvs_folder_id:
@@ -114,7 +121,7 @@ def run_resume_adapter(client: gspread.Client, base_cv: str, delay_sec: float = 
             print(f"подготовка резюме {idx}/{processed_total}({company} / {title})")
             
             # Создаём адаптированное резюме
-            doc_url = cv_docs.create_adapted_cv_document(
+            doc_url, raw_cv_text = cv_docs.create_adapted_cv_document(
                 base_cv=base_cv,
                 job_description=description,
                 system_prompt=system_prompt,
@@ -122,10 +129,12 @@ def run_resume_adapter(client: gspread.Client, base_cv: str, delay_sec: float = 
                 adapted_cvs_folder_id=adapted_cvs_folder_id,
                 job_title=title or "CV",
                 company_name=company or "Company",
+                applicant=master_cv_meta.get("applicant"),
             )
-            
-            # Обновляем Tracker
+
+            # Обновляем Tracker: ссылка на документ + сырой текст LLM
             sheets.update_tracker_new_cv_file(worksheet, row_num, headers, doc_url)
+            sheets.write_new_cv_text(worksheet, row_num, headers, raw_cv_text)
             processed_ok += 1
             
             _log.info("Resume Adapter: ✓ строка %d успешно обработана", row_num)
