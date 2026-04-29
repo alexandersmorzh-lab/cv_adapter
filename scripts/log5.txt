@@ -1,0 +1,60 @@
+[setup] .env найден: C:\Projects\cv_adapter\.env
+[setup] OAuth credentials найден: C:\Projects\cv_adapter\client_secret.json
+[setup] token.json найден: C:\Projects\cv_adapter\token.json
+
+==================================================
+Запуск задачи: linkedin
+==================================================
+
+✓ Найден сохранённый token.json
+============================================================
+  CV Adapter — адаптация резюме под вакансии
+============================================================
+[build] source=git | commit=81f14dd | branch=main | built_at=2026-04-22T17:38:03+03:00 | dirty=yes
+[setup] .env найден: C:\Projects\cv_adapter\.env
+[setup] OAuth credentials найден: C:\Projects\cv_adapter\client_secret.json
+[setup] token.json найден: C:\Projects\cv_adapter\token.json
+
+[*] Подключение к Google Sheets...
+    ✓ Авторизация успешна
+
+[0/2] LinkedIn Search: импорт вакансий в лист 'Search DataBase'...
+      • Проверяю Google Sheets (spreadsheet=1Xum7yEVyzxjjSE676oFEUE94T5-Zg7n7mjn2VwBuWlQ, sheet='Search DataBase')...
+      • Читаю профиль поиска (sheet='Primary Filter')...
+      • Активных поисков: 5; известных URL: 41; лимит: 60
+      • LinkedIn debug URL: http://localhost:9222
+      • Debug browser уже запущен: endpoint доступен (Chrome/147.0.7727.102)
+
+📊 Распределение общего лимита по весам:
+   [1] Project Manager | вес=3 | стартовая квота=18
+   [2] Product Owner | вес=2 | стартовая квота=12
+   [3] Business Analyst | вес=1 | стартовая квота=6
+   [4] AI specialist | вес=2 | стартовая квота=12
+   [5] AI Automation | вес=2 | стартовая квота=12
+
+🔍 LinkedIn поиск: Project Manager
+   • Локация: Netherlands
+   • Период: последние 24 часа (r86400)
+   • Вес позиции: 3
+   • Квота на этот проход: до 18 вакансий
+   • Уровни: 3, 4
+   • Типы занятости: F, C
+   • Отрасли: IT-услуги и ИТ-консалтинг, Разработка программного обеспечения, Финансовые услуги, Технологии, информационные средства и Интернет
+   • Коды отраслей LinkedIn (f_I): 96, 4, 43, 6
+   • Фильтр отраслей будет применён через URL-параметр f_I.
+   • Пагинация LinkedIn: start=0,25,50... это смещение результатов, а не число добавленных вакансий.
+   📄 Page 1 (start=0)
+   • Скролл завершён (контейнер: window)
+   • LinkedIn вернул карточек на странице: 7 (selector: .job-card-container)
+      ✓ [1] Projectleider Elektrotechnische Infratechniek - ProfMatch @ Jobster
+      ✓ [2] Resource Coordinator/Project Coordinator @ Ekco NL
+      ✓ [3] Senior Project Manager with verification @ RED Global
+      ✓ [4] Scrum Master with verification @ a.s.r. verzekeringen
+      ✓ [5] Project Manager OOH Network @ Mondial Relay
+      ✓ [6] Senior Projectleider (559964) with verification @ Ministerie van Defensie
+   • Итого по странице: добавлено 6, пропущено дубликатов 1
+   📄 Page 2 (start=25)
+   ⚠ Навигация страницы сработала нестабильно — проверяю, открылась ли выдача фактически.
+   ✗ Ошибка страницы LinkedIn: Page.title: Execution context was destroyed, most likely because of a navigation
+   ✅ Поиск завершён: 6 вакансий (квота: 18)
+   • 'Project Manager' использовал 6 из 18; возвращаю в общий пул 12.

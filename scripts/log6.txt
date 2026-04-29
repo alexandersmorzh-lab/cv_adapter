@@ -1,0 +1,260 @@
+[setup] .env найден: C:\Projects\cv_adapter\.env
+[setup] OAuth credentials найден: C:\Projects\cv_adapter\client_secret.json
+[setup] token.json найден: C:\Projects\cv_adapter\token.json
+
+==================================================
+Запуск задачи: linkedin
+==================================================
+
+✓ Найден сохранённый token.json
+============================================================
+  CV Adapter — адаптация резюме под вакансии
+============================================================
+[build] source=git | commit=81f14dd | branch=main | built_at=2026-04-22T17:38:03+03:00 | dirty=yes
+[setup] .env найден: C:\Projects\cv_adapter\.env
+[setup] OAuth credentials найден: C:\Projects\cv_adapter\client_secret.json
+[setup] token.json найден: C:\Projects\cv_adapter\token.json
+
+[*] Подключение к Google Sheets...
+    ✓ Авторизация успешна
+
+[0/2] LinkedIn Search: импорт вакансий в лист 'Search DataBase'...
+      • Проверяю Google Sheets (spreadsheet=1Xum7yEVyzxjjSE676oFEUE94T5-Zg7n7mjn2VwBuWlQ, sheet='Search DataBase')...
+      • Читаю профиль поиска (sheet='Primary Filter')...
+      • Активных поисков: 5; известных URL: 47; лимит: 60
+      • LinkedIn debug URL: http://localhost:9222
+      • Debug browser уже запущен: endpoint доступен (Chrome/147.0.7727.102)
+
+📊 Распределение общего лимита по весам:
+   [1] Project Manager | вес=3 | стартовая квота=18
+   [2] Product Owner | вес=2 | стартовая квота=12
+   [3] Business Analyst | вес=1 | стартовая квота=6
+   [4] AI specialist | вес=2 | стартовая квота=12
+   [5] AI Automation | вес=2 | стартовая квота=12
+
+🔍 LinkedIn поиск: Project Manager
+   • Локация: Netherlands
+   • Период: последние 24 часа (r86400)
+   • Вес позиции: 3
+   • Квота на этот проход: до 18 вакансий
+   • Уровни: 3, 4
+   • Типы занятости: F, C
+   • Отрасли: IT-услуги и ИТ-консалтинг, Разработка программного обеспечения, Финансовые услуги, Технологии, информационные средства и Интернет
+   • Коды отраслей LinkedIn (f_I): 96, 4, 43, 6
+   • Фильтр отраслей будет применён через URL-параметр f_I.
+   • Пагинация LinkedIn: start=0,25,50... это смещение результатов, а не число добавленных вакансий.
+   📄 Page 1 (start=0)
+   • Скролл завершён (контейнер: ancestor-of:.job-card-container)
+   • LinkedIn вернул карточек на странице: 25 (selector: .job-card-container)
+   • LinkedIn всего по запросу: 53 вакансий
+      ✓ [1] Scrum Master @ Stater
+      ✓ [2] Project Manager with verification @ Extenda Retail
+      ✓ [3] ALT2026-0286 - Senior Project Manager @ Altherias
+      ✓ [4] Projectmedewerker @ Van Ameyde Benelux
+      ✓ [5] Senior Project Manager with verification @ CNT Management Consulting
+      ✓ [6] Projectmanager @ Nsecure
+      ✓ [7] Scrum Master - Fully Remote @ Moralis
+      ✓ [8] Senior projectmanager ERP @ KWD Resultaatmanagement
+      ✓ [9] Projectleider Klimaattechniek - Stiek @ Jobster
+      ✓ [10] Project Lead Exterior | Kaag - Feadship @ Jobster
+      ✓ [11] Projectleider - Artiflex B.V. @ Jobster
+      ✓ [12] Project Controller - Engineering & Planning | Hoofddorp - Feadship @ Jobster
+      ✓ [13] Projectleider groen | Roosendaal - Idverde Roosendaal @ Jobster
+      ✓ [14] Senior PMO - NL with verification @ Capgemini
+      ✓ [15] Projectcontroller Publieke Sector with verification @ BAS Consultancy
+      ✓ [16] Freelance Projectleider Implementatie BIO-controls @ DiscoverIT Recruitment
+      ✓ [17] Manager Pensioen Transformatie (consultancy) @ Boer & Croon
+      ✓ [18] Research Project Manager @ Eclipse Foundation
+   • Итого по странице: добавлено 18, пропущено дубликатов 7
+   ✅ Поиск завершён: загружено 18 из 53 доступных (квота: 18)
+
+🔍 LinkedIn поиск: Product Owner
+   • Локация: Netherlands
+   • Период: последние 24 часа (r86400)
+   • Вес позиции: 2
+   • Квота на этот проход: до 12 вакансий
+   • Уровни: 3, 4
+   • Типы занятости: F, C
+   • Отрасли: IT-услуги и ИТ-консалтинг, Разработка программного обеспечения, Финансовые услуги, Технологии, информационные средства и Интернет
+   • Коды отраслей LinkedIn (f_I): 96, 4, 43, 6
+   • Фильтр отраслей будет применён через URL-параметр f_I.
+   • Пагинация LinkedIn: start=0,25,50... это смещение результатов, а не число добавленных вакансий.
+   📄 Page 1 (start=0)
+   • Скролл завершён (контейнер: window)
+   • LinkedIn вернул карточек на странице: 4 (selector: .job-card-container)
+   • LinkedIn всего по запросу: 4 вакансий
+   • Итого по странице: добавлено 0, пропущено дубликатов 4
+   ℹ Новых вакансий на странице нет — завершаю этот поиск.
+   ✅ Поиск завершён: загружено 0 из 4 доступных (квота: 12)
+   • 'Product Owner' использовал 0 из 12; возвращаю в общий пул 12.
+
+🔍 LinkedIn поиск: Business Analyst
+   • Локация: Netherlands
+   • Период: последние 24 часа (r86400)
+   • Вес позиции: 1
+   • Квота на этот проход: до 6 вакансий
+   • Уровни: 3, 4
+   • Типы занятости: F, C
+   • Отрасли: IT-услуги и ИТ-консалтинг, Разработка программного обеспечения, Финансовые услуги, Технологии, информационные средства и Интернет
+   • Коды отраслей LinkedIn (f_I): 96, 4, 43, 6
+   • Фильтр отраслей будет применён через URL-параметр f_I.
+   • Пагинация LinkedIn: start=0,25,50... это смещение результатов, а не число добавленных вакансий.
+   📄 Page 1 (start=0)
+   • Скролл завершён (контейнер: window)
+   • LinkedIn вернул карточек на странице: 4 (selector: .job-card-container)
+   • LinkedIn всего по запросу: 4 вакансий
+   • Итого по странице: добавлено 0, пропущено дубликатов 4
+   ℹ Новых вакансий на странице нет — завершаю этот поиск.
+   ✅ Поиск завершён: загружено 0 из 4 доступных (квота: 6)
+   • 'Business Analyst' использовал 0 из 6; возвращаю в общий пул 6.
+
+🔍 LinkedIn поиск: AI specialist
+   • Локация: Netherlands
+   • Период: последние 24 часа (r86400)
+   • Вес позиции: 2
+   • Квота на этот проход: до 12 вакансий
+   • Уровни: 3, 4
+   • Типы занятости: F, C
+   • Отрасли: IT-услуги и ИТ-консалтинг, Разработка программного обеспечения, Финансовые услуги, Технологии, информационные средства и Интернет
+   • Коды отраслей LinkedIn (f_I): 96, 4, 43, 6
+   • Фильтр отраслей будет применён через URL-параметр f_I.
+   • Пагинация LinkedIn: start=0,25,50... это смещение результатов, а не число добавленных вакансий.
+   📄 Page 1 (start=0)
+   • Скролл завершён (контейнер: ancestor-of:.job-card-container)
+   • LinkedIn вернул карточек на странице: 25 (selector: .job-card-container)
+   • LinkedIn всего по запросу: 148 вакансий
+      ✓ [1] Senior Consultant Corporate Finance with verification @ BDO Nederland
+      ✓ [2] Databricks Solution Architect @ CloudTech Innovations
+      ✓ [3] Contentspecialist (32-36 uur) with verification @ PGGM
+      ✓ [4] Technical Consultant @ Apprize Technology Solutions
+      ✓ [5] DevOps Engineer @ INTERSTELLAR
+      ✓ [6] Hoofd Technische Dienst | Machinebouw + Productie - ProfMatch @ Jobster
+      ✓ [7] Partner Program Manager @ GCS
+      ✓ [8] Sales Development Representative with verification @ ORO Labs
+      ✓ [9] Senior Marketing Analyst @ Marktplaats
+      ✓ [10] Ecommerce Specialist @ ALSO Group
+      ✓ [11] HubSpot Sales Coordinator with verification @ Set 2 Close | B Corp™
+      ✓ [12] Revenue Operations Engineer @ Therapieland
+   • Итого по странице: добавлено 12, пропущено дубликатов 4
+   ✅ Поиск завершён: загружено 12 из 148 доступных (квота: 12)
+
+🔍 LinkedIn поиск: AI Automation
+   • Локация: Netherlands
+   • Период: период LinkedIn (r86401) (r86401)
+   • Вес позиции: 2
+   • Квота на этот проход: до 12 вакансий
+   • Уровни: 3, 5
+   • Типы занятости: F, C
+   • Отрасли: IT-услуги и ИТ-консалтинг, Разработка программного обеспечения, Финансовые услуги, Технологии, информационные средства и Интернет
+   • Коды отраслей LinkedIn (f_I): 96, 4, 43, 6
+   • Фильтр отраслей будет применён через URL-параметр f_I.
+   • Пагинация LinkedIn: start=0,25,50... это смещение результатов, а не число добавленных вакансий.
+   📄 Page 1 (start=0)
+   • Скролл завершён (контейнер: window)
+   • LinkedIn вернул карточек на странице: 1 (selector: .job-card-container)
+   • LinkedIn всего по запросу: 1 вакансий
+   • Итого по странице: добавлено 0, пропущено дубликатов 1
+   ℹ Новых вакансий на странице нет — завершаю этот поиск.
+   ✅ Поиск завершён: загружено 0 из 1 доступных (квота: 12)
+   • 'AI Automation' использовал 0 из 12; возвращаю в общий пул 12.
+
+🔄 Запускаю добор из общего пула: осталось 30 вакансий для перераспределения.
+   • Добор для 'Project Manager' (вес=3): ещё до 30 вакансий.
+
+🔍 LinkedIn поиск: Project Manager
+   • Локация: Netherlands
+   • Период: последние 24 часа (r86400)
+   • Вес позиции: 3
+   • Квота на этот проход: до 30 вакансий
+   • Уровни: 3, 4
+   • Типы занятости: F, C
+   • Отрасли: IT-услуги и ИТ-консалтинг, Разработка программного обеспечения, Финансовые услуги, Технологии, информационные средства и Интернет
+   • Коды отраслей LinkedIn (f_I): 96, 4, 43, 6
+   • Фильтр отраслей будет применён через URL-параметр f_I.
+   • Пагинация LinkedIn: start=0,25,50... это смещение результатов, а не число добавленных вакансий.
+   📄 Page 1 (start=0)
+   • Скролл завершён (контейнер: ancestor-of:.job-card-container)
+   • LinkedIn вернул карточек на странице: 7 (selector: .job-card-container)
+   • LinkedIn всего по запросу: 53 вакансий
+   • Итого по странице: добавлено 0, пропущено дубликатов 7
+   ℹ Новых вакансий на странице нет — завершаю этот поиск.
+   ✅ Поиск завершён: загружено 0 из 53 доступных (квота: 30)
+   • Для 'Project Manager' дополнительных вакансий не найдено; убираю из кандидатов на добор.
+   • Добор для 'AI specialist' (вес=2): ещё до 30 вакансий.
+
+🔍 LinkedIn поиск: AI specialist
+   • Локация: Netherlands
+   • Период: последние 24 часа (r86400)
+   • Вес позиции: 2
+   • Квота на этот проход: до 30 вакансий
+   • Уровни: 3, 4
+   • Типы занятости: F, C
+   • Отрасли: IT-услуги и ИТ-консалтинг, Разработка программного обеспечения, Финансовые услуги, Технологии, информационные средства и Интернет
+   • Коды отраслей LinkedIn (f_I): 96, 4, 43, 6
+   • Фильтр отраслей будет применён через URL-параметр f_I.
+   • Пагинация LinkedIn: start=0,25,50... это смещение результатов, а не число добавленных вакансий.
+   📄 Page 1 (start=0)
+   • Скролл завершён (контейнер: ancestor-of:.job-card-container)
+   • LinkedIn вернул карточек на странице: 7 (selector: .job-card-container)
+   • LinkedIn всего по запросу: 151 вакансий
+      ✓ [1] Manager – Strategy & Operations - ESG with verification @ KPMG Nederland
+   • Итого по странице: добавлено 1, пропущено дубликатов 6
+   📄 Page 2 (start=25)
+   • Скролл завершён (контейнер: ancestor-of:.job-card-container)
+   • LinkedIn вернул карточек на странице: 8 (selector: .job-card-container)
+      ✓ [2] Manager Internal Audit with verification @ KPMG Nederland
+      ✓ [3] Data Engineer @ Air Apps
+      ✓ [4] Swiss German Audio Recording Expert @ micro1
+      ✓ [5] Senior Data Analyst @ Marktplaats
+      ✓ [6] Senior Rewards Manager with verification @ Vinted
+      ✓ [7] Data Analytics Engineer (dbt / Snowflake) with verification @ Cpl
+      ✓ [8] Data & AI Engineer @ Heeyoo
+   • Итого по странице: добавлено 7, пропущено дубликатов 1
+   📄 Page 3 (start=50)
+   • Скролл завершён (контейнер: ancestor-of:.job-card-container)
+   • LinkedIn вернул карточек на странице: 7 (selector: .job-card-container)
+      ✓ [9] Strategic Portfolio Manager with verification @ KPMG Nederland
+      ✓ [10] Deskside Technician – End User Computing (EUC) with verification @ ITproposal
+      ✓ [11] Senior Netwerk Engineer – Cisco – Eindhoven with verification @ Blauwtand IT
+      ✓ [12] Customer Success Manager @ micro1
+      ✓ [13] CRM Specialist @ Air Apps
+      ✓ [14] Azure beheerder with verification @ Elevation Group
+   • Итого по странице: добавлено 6, пропущено дубликатов 1
+   📄 Page 4 (start=75)
+   • Скролл завершён (контейнер: ancestor-of:.job-card-container)
+   • LinkedIn вернул карточек на странице: 7 (selector: .job-card-container)
+      ✓ [15] American Express - Centurion Lounge Assistant Team Leader with verification @ American Express
+      ✓ [16] AI Native Software Engineering Manager | Assoc Manager with verification @ Accenture the Netherlands
+      ✓ [17] Risk Control Manager (Business Partner) with verification @ Trip.com Group
+      ✓ [18] Account Technical Lead with verification @ Autodesk
+      ✓ [19] Document Sourcing Specialist @ micro1
+      ✓ [20] ASO Specialist @ Air Apps
+   • Итого по странице: добавлено 6, пропущено дубликатов 1
+   📄 Page 5 (start=100)
+   • Скролл завершён (контейнер: ancestor-of:.job-card-container)
+   • LinkedIn вернул карточек на странице: 7 (selector: .job-card-container)
+      ✓ [21] Customer Success Manager @ micro1
+      ✓ [22] Senior AI/ML/Data Scientists with verification @ Cavendish Professionals
+      ✓ [23] Programmamanager @ KWD Resultaatmanagement
+      ✓ [24] Teamlead Servicedesk - ASA Talent @ Jobster
+      ✓ [25] AI Consultant @ Wieck Molendijk Consultants
+      ✓ [26] Principal Engineer II with verification @ Storio group
+   • Итого по странице: добавлено 6, пропущено дубликатов 1
+   📄 Page 6 (start=125)
+   • Скролл завершён (контейнер: ancestor-of:.job-card-container)
+   • LinkedIn вернул карточек на странице: 7 (selector: .job-card-container)
+      ✓ [27] Specialist Gebouwautomatisering - Stiek @ Jobster
+      ✓ [28] Security & Resiliency Consultant @ Kyndryl
+      ✓ [29] Software Engineering Manager – Unified Platform with verification @ Adyen
+      ✓ [30] Senior Platform Engineer with verification @ Grafton Recruitment
+   • Итого по странице: добавлено 4, пропущено дубликатов 0
+   ✅ Поиск завершён: загружено 30 из 151 доступных (квота: 30)
+   • Добор из 'AI specialist': найдено ещё 30; в пуле осталось 0.
+    ✓ LinkedIn Search: найдено 60, добавлено 60, пропущено 0
+    ℹ Следующий шаг: запустите 'Анализ вакансий' или 'Поиск+Анализ+Адаптация'.
+
+============================================================
+  ✓ Готово!
+============================================================
+✓ Задача выполнена успешно!
+

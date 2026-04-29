@@ -249,6 +249,24 @@ def _normalize_text(value: str) -> str:
     return re.sub(r"\s+", " ", value).strip()
 
 
+def _match_wrong_phrase(text: str, wrong_phrases: list[str]) -> str | None:
+    """Возвращает первую совпавшую запрещенную фразу (без учета регистра)."""
+    if not wrong_phrases:
+        return None
+
+    text_lower = (text or "").lower()
+    if not text_lower.strip():
+        return None
+
+    for phrase in wrong_phrases:
+        candidate = (phrase or "").strip()
+        if not candidate:
+            continue
+        if candidate.lower() in text_lower:
+            return candidate
+    return None
+
+
 def _expand_industry_variants(value: str) -> list[str]:
     raw = (value or "").strip()
     if not raw:
@@ -762,6 +780,100 @@ async def _apply_industry_filters(page, industries: list[str]) -> str:
     return page.url
 
 
+async def _scroll_jobs_list_step(page, scroll_step: int = 600) -> dict[str, Any]:
+    """Делает один шаг прокрутки и возвращает информацию о контейнере и достижении низа списка."""
+    scroll_script = """
+    (step) => {
+        const cardSelectors = [
+            'ul.jobs-search__results-list > li',
+            '.jobs-search-results__list-item',
+            '.scaffold-layout__list-container li',
+            '.job-card-container',
+            '[data-job-id]',
+        ];
+
+        const byKnownSelector = [
+            '.jobs-search-results-list',
+            '.jobs-search-results-list__list',
+            '.jobs-search-results__list',
+            '.scaffold-layout__list-container',
+            '.scaffold-layout__list',
+        ];
+
+        const findScrollableAncestor = (el) => {
+            let node = el;
+            while (node && node !== document.body) {
+                if (node.scrollHeight > node.clientHeight + 10) {
+                    return node;
+                }
+                node = node.parentElement;
+            }
+            return null;
+        };
+
+        let target = null;
+        let targetName = 'window';
+
+        for (const sel of byKnownSelector) {
+            const candidate = document.querySelector(sel);
+            if (candidate && candidate.scrollHeight > candidate.clientHeight + 10) {
+                target = candidate;
+                targetName = sel;
+                break;
+            }
+        }
+
+        if (!target) {
+            for (const sel of cardSelectors) {
+                const card = document.querySelector(sel);
+                if (!card) {
+                    continue;
+                }
+                const ancestor = findScrollableAncestor(card);
+                if (ancestor) {
+                    target = ancestor;
+                    targetName = `ancestor-of:${sel}`;
+                    break;
+                }
+            }
+        }
+
+        if (target) {
+            target.scrollTop += step;
+            return {
+                container: targetName,
+                scrollTop: target.scrollTop,
+                scrollHeight: target.scrollHeight,
+                clientHeight: target.clientHeight,
+                atBottom: (target.scrollTop + target.clientHeight) >= (target.scrollHeight - 50),
+            };
+        }
+
+        window.scrollBy(0, step);
+        return {
+            container: 'window',
+            scrollTop: window.scrollY,
+            scrollHeight: Math.max(document.body.scrollHeight, document.documentElement.scrollHeight),
+            clientHeight: window.innerHeight,
+            atBottom: (window.scrollY + window.innerHeight) >= (Math.max(document.body.scrollHeight, document.documentElement.scrollHeight) - 50),
+        };
+    }
+    """
+    try:
+        result = await page.evaluate(scroll_script, scroll_step)
+        if isinstance(result, dict):
+            return result
+    except Exception:
+        pass
+    return {
+        "container": "unknown",
+        "scrollTop": 0,
+        "scrollHeight": 0,
+        "clientHeight": 0,
+        "atBottom": True,
+    }
+
+
 async def _get_job_cards(page) -> tuple[str | None, list[Any]]:
     for selector in STRICT_CARD_SELECTORS:
         cards = await page.query_selector_all(selector)
@@ -778,6 +890,72 @@ async def _get_job_cards(page) -> tuple[str | None, list[Any]]:
         if cards:
             return selector, cards
     return None, []
+
+
+async def _get_total_results_count(page) -> int | None:
+    """Считывает общее число вакансий, показанное LinkedIn над списком результатов (напр. «138 results»)."""
+    selectors = [
+        ".jobs-search-results-list__subtitle",
+        ".jobs-search-results__total-results",
+        "span[data-test-search-results-count]",
+        "div.jobs-search-results-list__subtitle span",
+        ".jobs-search-results-list__title",
+        "h1.jobs-search-results-list__title",
+    ]
+
+    result_words = [
+        "result",
+        "results",
+        "vacanc",
+        "vacature",
+        "vacatures",
+        "ваканс",
+        "результат",
+        "resultaten",
+        "banen",
+    ]
+
+    def _extract_number_from_text(text: str) -> int | None:
+        low = text.lower()
+        if not any(word in low for word in result_words):
+            return None
+        m = re.search(r"\d[\d\s.,\u00A0]*", text)
+        if not m:
+            return None
+        digits_only = re.sub(r"[^0-9]", "", m.group(0))
+        if not digits_only:
+            return None
+        try:
+            return int(digits_only)
+        except Exception:
+            return None
+
+    for selector in selectors:
+        try:
+            el = await page.query_selector(selector)
+            if el:
+                text = (await el.inner_text(timeout=2000)).strip()
+                parsed = _extract_number_from_text(text)
+                if parsed is not None:
+                    return parsed
+        except Exception:
+            continue
+
+    try:
+        body_text = await page.locator("body").inner_text(timeout=2500)
+    except Exception:
+        body_text = ""
+
+    if body_text:
+        for raw_line in body_text.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            parsed = _extract_number_from_text(line)
+            if parsed is not None:
+                return parsed
+
+    return None
 
 
 async def _has_no_results_indicator(page) -> bool:
@@ -1002,12 +1180,25 @@ def _ensure_debug_browser_available() -> None:
     )
 
 
-async def _scrape_linkedin_search(page, search: dict[str, Any], scrape_cap: int, known_urls: set[str]) -> list[dict[str, str]]:
+async def _scrape_linkedin_search(
+    page,
+    search: dict[str, Any],
+    scrape_cap: int,
+    known_urls: set[str],
+    *,
+    initial_start: int = 0,
+    wrong_phrases: list[str] | None = None,
+) -> tuple[list[dict[str, str]], int]:
     jobs: list[dict[str, str]] = []
     seen_urls = set(known_urls)
-    start = 0
-    page_num = 1
+    start = max(0, int(initial_start or 0))
+    page_num = max(1, (start // 25) + 1)
     filtered_base_url: str | None = None
+    empty_new_pages = 0
+
+    total_available: int | None = None
+    total_banned = 0
+    wrong_phrases = list(wrong_phrases or [])
 
     raw_date_range = search.get("date_range", "r604800")
     industries = search.get("industries") or []
@@ -1053,8 +1244,22 @@ async def _scrape_linkedin_search(page, search: dict[str, Any], scrape_cap: int,
 
             await page.wait_for_timeout(config.LINKEDIN_PAGE_LOAD_WAIT_MS)
 
-            page_url = page.url.lower()
-            page_title = (await page.title()).strip()
+            page_url = ""
+            page_title = ""
+            last_page_meta_error: Exception | None = None
+            for _ in range(3):
+                try:
+                    page_url = page.url.lower()
+                    page_title = (await page.title()).strip()
+                    last_page_meta_error = None
+                    break
+                except Exception as meta_error:
+                    last_page_meta_error = meta_error
+                    await page.wait_for_timeout(400)
+
+            if last_page_meta_error is not None:
+                raise RuntimeError(f"Не удалось прочитать состояние страницы LinkedIn: {last_page_meta_error}")
+
             if "login" in page_url or "sign in" in page_title.lower():
                 raise RuntimeError(
                     "LinkedIn требует вход. В debug-браузере нужно вручную войти в аккаунт пользователя."
@@ -1072,135 +1277,253 @@ async def _scrape_linkedin_search(page, search: dict[str, Any], scrape_cap: int,
                     print(f"   ⚠ Не удалось применить фильтр 'Отрасли': {filter_error}", flush=True)
                     filtered_base_url = page.url
 
-            for _ in range(max(1, int(config.LINKEDIN_SCROLL_ROUNDS))):
-                await page.keyboard.press("End")
-                await page.wait_for_timeout(1200)
+            matched_selector: str | None = None
+            observed_page_urls: set[str] = set()
+            scroll_containers: set[str] = set()
+            new_this_page = 0
+            skipped_duplicates = 0
+            banned_this_page = 0
+            no_growth_steps = 0
 
-            matched_selector, cards = await _get_job_cards(page)
-            if not cards:
-                dismissed_more = await _dismiss_known_popups(page)
-                if dismissed_more:
-                    print(f"   • Дополнительно закрыто баннеров: {dismissed_more}", flush=True)
-                    await page.wait_for_timeout(1500)
-                    matched_selector, cards = await _get_job_cards(page)
+            for _ in range(60):
+                if len(jobs) >= scrape_cap or _check_stop_requested():
+                    break
 
-            if not cards:
+                matched_selector_candidate, cards = await _get_job_cards(page)
+                if matched_selector_candidate:
+                    matched_selector = matched_selector_candidate
+
+                if not cards:
+                    dismissed_more = await _dismiss_known_popups(page)
+                    if dismissed_more:
+                        print(f"   • Дополнительно закрыто баннеров: {dismissed_more}", flush=True)
+                        await page.wait_for_timeout(1200)
+                        matched_selector_candidate, cards = await _get_job_cards(page)
+                        if matched_selector_candidate:
+                            matched_selector = matched_selector_candidate
+
+                newly_observed_on_step = 0
+                for card in cards:
+                    if len(jobs) >= scrape_cap or _check_stop_requested():
+                        break
+
+                    try:
+                        link_el = await card.query_selector(
+                            "a.job-card-container__link, a.job-card-list__title--link"
+                        )
+                        if not link_el:
+                            continue
+
+                        href = await link_el.get_attribute("href")
+                        if not href:
+                            continue
+
+                        if href.startswith("http"):
+                            job_url = href.split("?")[0]
+                        else:
+                            job_url = f"https://www.linkedin.com{href.split('?')[0]}"
+
+                        if job_url in observed_page_urls:
+                            continue
+
+                        observed_page_urls.add(job_url)
+                        newly_observed_on_step += 1
+
+                        if job_url in seen_urls:
+                            skipped_duplicates += 1
+                            continue
+
+                        title = (await link_el.get_attribute("aria-label") or "").strip()
+                        if not title:
+                            strong = await link_el.query_selector("strong")
+                            title = (await strong.inner_text()).strip() if strong else ""
+                        if not title:
+                            continue
+
+                        company = ""
+                        for selector in [
+                            ".artdeco-entity-lockup__subtitle span",
+                            ".job-card-container__primary-description",
+                        ]:
+                            el = await card.query_selector(selector)
+                            if el:
+                                company = (await el.inner_text()).strip()
+                                if company:
+                                    break
+                        if not company:
+                            company = "Unknown"
+
+                        location = ""
+                        for selector in [
+                            ".artdeco-entity-lockup__metadata span",
+                            ".job-card-container__metadata-wrapper span",
+                            ".job-card-container__metadata-item",
+                        ]:
+                            el = await card.query_selector(selector)
+                            if el:
+                                location = (await el.inner_text()).strip()
+                                if location:
+                                    break
+                        if not location:
+                            location = str(search.get("location", ""))
+
+                        description = ""
+                        description_error: str | None = None
+                        try:
+                            await link_el.click()
+                            # Приоритетные селекторы: сначала элемент с реальным текстом
+                            # (.show-more-less-html__markup появляется только когда контент загружен),
+                            # затем fallback-обёртки на случай нестандартной разметки.
+                            desc_selectors = [
+                                ".show-more-less-html__markup",   # фактический текст вакансии
+                                ".jobs-description__content",
+                                ".jobs-description",
+                                ".show-more-less-html",
+                            ]
+                            # Ждём конкретно markup-элемент — он появляется после загрузки контента,
+                            # а не сразу вместе с заголовком-заглушкой "Об этой вакансии".
+                            markup_selector = ".show-more-less-html__markup"
+                            fallback_selector = ".jobs-description__content, .jobs-description, .show-more-less-html"
+                            try:
+                                await page.wait_for_selector(
+                                    markup_selector,
+                                    state="visible",
+                                    timeout=config.LINKEDIN_DESCRIPTION_TIMEOUT_MS,
+                                )
+                            except Exception:
+                                # markup не появился — ждём хотя бы обёртку
+                                try:
+                                    await page.wait_for_selector(
+                                        fallback_selector,
+                                        state="visible",
+                                        timeout=config.LINKEDIN_DESCRIPTION_TIMEOUT_MS,
+                                    )
+                                except Exception as wait_err:
+                                    description_error = f"описание не появилось за {config.LINKEDIN_DESCRIPTION_TIMEOUT_MS} мс: {wait_err}"
+                            if description_error is None:
+                                _STUB_CHECK = {"об этой вакансии", "about the job", "over deze vacature", "über diese stelle"}
+                                for _attempt in range(4):  # до 4 попыток × 0.8 сек = 3.2 сек
+                                    for selector in desc_selectors:
+                                        desc_el = await page.query_selector(selector)
+                                        if desc_el:
+                                            _text = (await desc_el.inner_text()).strip()
+                                            if _text and _text.lower() not in _STUB_CHECK and len(_text) >= 80:
+                                                description = _text
+                                                break
+                                    if description:
+                                        break
+                                    if _attempt < 3:
+                                        await asyncio.sleep(0.8)
+                                if not description:
+                                    # Контент так и не загрузился — сохраняем то что есть
+                                    for selector in desc_selectors:
+                                        desc_el = await page.query_selector(selector)
+                                        if desc_el:
+                                            description = (await desc_el.inner_text()).strip()
+                                            if description:
+                                                break
+                        except Exception as e:
+                            description_error = str(e)
+
+                        _STUB_PHRASES = (
+                            "об этой вакансии",
+                            "about the job",
+                            "over deze vacature",
+                            "über diese stelle",
+                        )
+                        description_is_stub = (
+                            description.strip().lower() in _STUB_PHRASES
+                            or len(description.strip()) < 80
+                        )
+
+                        if not description or description_error or description_is_stub:
+                            if description_is_stub and not description_error:
+                                reason = f"описание содержит только заглушку: «{description.strip()[:60]}»"
+                            else:
+                                reason = description_error or "описание пустое после загрузки"
+                            print(f"      ✗ [{title} @ {company}] пропуск — {reason}", flush=True)
+                            seen_urls.add(job_url)
+                            await asyncio.sleep(config.LINKEDIN_CARD_DELAY_SEC)
+                            continue
+
+                        ban_probe = f"{title}\n{company}\n{description}"
+                        matched_phrase = _match_wrong_phrase(ban_probe, wrong_phrases)
+                        if matched_phrase:
+                            print(
+                                f"      ✗ [{title} @ {company}] забанено — фраза: \"{matched_phrase}\"",
+                                flush=True,
+                            )
+                            seen_urls.add(job_url)
+                            banned_this_page += 1
+                            total_banned += 1
+                            await asyncio.sleep(config.LINKEDIN_CARD_DELAY_SEC)
+                            continue
+
+                        jobs.append(
+                            {
+                                "title": title,
+                                "company": company,
+                                "location": location,
+                                "url": job_url,
+                                "source": "linkedin",
+                                "description": description,
+                            }
+                        )
+                        seen_urls.add(job_url)
+                        new_this_page += 1
+                        print(f"      ✓ [{len(jobs)}] {title} @ {company}", flush=True)
+                        await asyncio.sleep(config.LINKEDIN_CARD_DELAY_SEC)
+                    except Exception as e:
+                        print(f"      ⚠ Пропуск карточки: {e}", flush=True)
+                        continue
+
+                if newly_observed_on_step == 0:
+                    no_growth_steps += 1
+                else:
+                    no_growth_steps = 0
+
+                scroll_state = await _scroll_jobs_list_step(page)
+                scroll_containers.add(str(scroll_state.get("container", "unknown")))
+                await page.wait_for_timeout(500)
+
+                if bool(scroll_state.get("atBottom")) and no_growth_steps >= 2:
+                    break
+
+            if not observed_page_urls:
                 state = await _describe_page_state(page)
                 if navigation_issue is not None:
                     print(f"   ⚠ Причина навигации: {navigation_issue}", flush=True)
                 print(f"   ⚠ Карточки вакансий не найдены. Состояние: {state}", flush=True)
                 break
 
+            container_report = ", ".join(sorted(c for c in scroll_containers if c)) or "unknown"
+            print(f"   • Скролл завершён (контейнер: {container_report})", flush=True)
             print(
-                f"   • LinkedIn вернул карточек на странице: {len(cards)} (selector: {matched_selector})",
+                f"   • LinkedIn вернул карточек на странице: {len(observed_page_urls)} (selector: {matched_selector})",
                 flush=True,
             )
 
-            new_this_page = 0
-            skipped_duplicates = 0
-            for card in cards:
-                if len(jobs) >= scrape_cap:
-                    break
-                if _check_stop_requested():
-                    break
-
-                try:
-                    link_el = await card.query_selector(
-                        "a.job-card-container__link, a.job-card-list__title--link"
-                    )
-                    if not link_el:
-                        continue
-
-                    href = await link_el.get_attribute("href")
-                    if not href:
-                        continue
-
-                    if href.startswith("http"):
-                        job_url = href.split("?")[0]
-                    else:
-                        job_url = f"https://www.linkedin.com{href.split('?')[0]}"
-
-                    if job_url in seen_urls:
-                        skipped_duplicates += 1
-                        continue
-
-                    title = (await link_el.get_attribute("aria-label") or "").strip()
-                    if not title:
-                        strong = await link_el.query_selector("strong")
-                        title = (await strong.inner_text()).strip() if strong else ""
-                    if not title:
-                        continue
-
-                    company = ""
-                    for selector in [
-                        ".artdeco-entity-lockup__subtitle span",
-                        ".job-card-container__primary-description",
-                    ]:
-                        el = await card.query_selector(selector)
-                        if el:
-                            company = (await el.inner_text()).strip()
-                            if company:
-                                break
-                    if not company:
-                        company = "Unknown"
-
-                    location = ""
-                    for selector in [
-                        ".artdeco-entity-lockup__metadata span",
-                        ".job-card-container__metadata-wrapper span",
-                        ".job-card-container__metadata-item",
-                    ]:
-                        el = await card.query_selector(selector)
-                        if el:
-                            location = (await el.inner_text()).strip()
-                            if location:
-                                break
-                    if not location:
-                        location = str(search.get("location", ""))
-
-                    description = ""
-                    try:
-                        await link_el.click()
-                        await page.wait_for_timeout(2200)
-                        for selector in [
-                            ".jobs-description__content",
-                            ".jobs-description",
-                            ".show-more-less-html",
-                        ]:
-                            desc_el = await page.query_selector(selector)
-                            if desc_el:
-                                description = (await desc_el.inner_text()).strip()
-                                if description:
-                                    break
-                    except Exception:
-                        description = description or ""
-
-                    jobs.append(
-                        {
-                            "title": title,
-                            "company": company,
-                            "location": location,
-                            "url": job_url,
-                            "source": "linkedin",
-                            "description": description,
-                        }
-                    )
-                    seen_urls.add(job_url)
-                    new_this_page += 1
-                    print(f"      ✓ [{len(jobs)}] {title} @ {company}", flush=True)
-                    await asyncio.sleep(config.LINKEDIN_CARD_DELAY_SEC)
-                except Exception as e:
-                    print(f"      ⚠ Пропуск карточки: {e}", flush=True)
-                    continue
+            if start == 0:
+                total_available = await _get_total_results_count(page)
+                if total_available is not None:
+                    print(f"   • LinkedIn всего по запросу: {total_available} вакансий", flush=True)
 
             print(
-                f"   • Итого по странице: добавлено {new_this_page}, пропущено дубликатов {skipped_duplicates}",
+                f"   • Итого по странице: добавлено {new_this_page}, пропущено дубликатов {skipped_duplicates}, забанено {banned_this_page}",
                 flush=True,
             )
 
             if new_this_page == 0:
-                print("   ℹ Новых вакансий на странице нет — завершаю этот поиск.", flush=True)
-                break
+                empty_new_pages += 1
+                print(
+                    f"   ℹ На странице нет новых вакансий (пустых страниц подряд: {empty_new_pages})",
+                    flush=True,
+                )
+                if empty_new_pages >= 2:
+                    print("   ℹ Две страницы подряд без новых вакансий — завершаю этот поиск.", flush=True)
+                    break
+            else:
+                empty_new_pages = 0
 
             start += 25
             page_num += 1
@@ -1209,15 +1532,26 @@ async def _scrape_linkedin_search(page, search: dict[str, Any], scrape_cap: int,
             print(f"   ✗ Ошибка страницы LinkedIn: {e}", flush=True)
             break
 
-    print(f"   ✅ Поиск завершён: {len(jobs)} вакансий", flush=True)
-    return jobs
+    if total_available is not None:
+        print(
+            f"   ✅ Поиск завершён: загружено {len(jobs)} из {total_available} доступных (квота: {scrape_cap}, забанено: {total_banned})",
+            flush=True,
+        )
+    else:
+        print(f"   ✅ Поиск завершён: {len(jobs)} вакансий (квота: {scrape_cap}, забанено: {total_banned})", flush=True)
+    return jobs, start
 
 
-async def _collect_jobs(search_profile: list[dict[str, Any]], existing_urls: set[str]) -> list[dict[str, str]]:
+async def _collect_jobs(
+    search_profile: list[dict[str, Any]],
+    existing_urls: set[str],
+    wrong_phrases: list[str] | None = None,
+) -> list[dict[str, str]]:
     async_playwright = _require_playwright()
     _ensure_debug_browser_available()
 
     all_jobs: list[dict[str, str]] = []
+    wrong_phrases = list(wrong_phrases or [])
     debug_url = config.LINKEDIN_CHROME_DEBUG_URL.rstrip("/")
     total_cap = max(0, int(config.LINKEDIN_SCRAPE_CAP))
     initial_caps = _build_weighted_caps(search_profile, total_cap)
@@ -1242,6 +1576,7 @@ async def _collect_jobs(search_profile: list[dict[str, Any]], existing_urls: set
         try:
             shared_pool = 0
             top_up_candidates: list[dict[str, Any]] = []
+            next_start_by_search_id: dict[int, int] = {}
 
             for idx, search in enumerate(search_profile):
                 if _check_stop_requested():
@@ -1255,8 +1590,15 @@ async def _collect_jobs(search_profile: list[dict[str, Any]], existing_urls: set
 
                 known_urls = set(existing_urls)
                 known_urls.update(job["url"] for job in all_jobs if job.get("url"))
-                jobs = await _scrape_linkedin_search(page, search, allocated, known_urls)
+                jobs, next_start = await _scrape_linkedin_search(
+                    page,
+                    search,
+                    allocated,
+                    known_urls,
+                    wrong_phrases=wrong_phrases,
+                )
                 all_jobs.extend(jobs)
+                next_start_by_search_id[id(search)] = max(0, int(next_start or 0))
 
                 found = len(jobs)
                 unused = max(0, allocated - found)
@@ -1303,7 +1645,21 @@ async def _collect_jobs(search_profile: list[dict[str, Any]], existing_urls: set
                             )
                             known_urls = set(existing_urls)
                             known_urls.update(job["url"] for job in all_jobs if job.get("url"))
-                            extra_jobs = await _scrape_linkedin_search(page, search, top_up, known_urls)
+                            resume_from = next_start_by_search_id.get(id(search), 0)
+                            if resume_from > 0:
+                                print(
+                                    f"   • Добор начнётся с start={resume_from}, чтобы не повторять уже просмотренные страницы.",
+                                    flush=True,
+                                )
+                            extra_jobs, next_start = await _scrape_linkedin_search(
+                                page,
+                                search,
+                                top_up,
+                                known_urls,
+                                initial_start=resume_from,
+                                wrong_phrases=wrong_phrases,
+                            )
+                            next_start_by_search_id[id(search)] = max(0, int(next_start or resume_from))
                             used = len(extra_jobs)
                             all_jobs.extend(extra_jobs)
 
@@ -1390,7 +1746,17 @@ def run_linkedin_search_import(*, client) -> tuple[int, int, int]:
     )
 
     try:
-        jobs = asyncio.run(_collect_jobs(search_profile, existing_urls))
+        import sheets
+
+        wrong_phrases = sheets.read_wrong_phrases(client)
+    except Exception as e:
+        print(f"      ⚠ Не удалось прочитать WrongPhrases: {e}", flush=True)
+        wrong_phrases = []
+
+    print(f"      • Загружено запрещённых фраз для фильтрации: {len(wrong_phrases)}", flush=True)
+
+    try:
+        jobs = asyncio.run(_collect_jobs(search_profile, existing_urls, wrong_phrases=wrong_phrases))
     except Exception as e:
         raise RuntimeError(str(e)) from e
     if not jobs:

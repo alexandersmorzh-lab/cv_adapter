@@ -1,0 +1,242 @@
+[setup] .env найден: C:\Projects\cv_adapter\.env
+[setup] OAuth credentials найден: C:\Projects\cv_adapter\client_secret.json
+[setup] token.json найден: C:\Projects\cv_adapter\token.json
+
+==================================================
+Запуск задачи: linkedin
+==================================================
+
+✓ Найден сохранённый token.json
+============================================================
+  CV Adapter — адаптация резюме под вакансии
+============================================================
+[build] source=git | commit=81f14dd | branch=main | built_at=2026-04-22T17:38:03+03:00 | dirty=yes
+[setup] .env найден: C:\Projects\cv_adapter\.env
+[setup] OAuth credentials найден: C:\Projects\cv_adapter\client_secret.json
+[setup] token.json найден: C:\Projects\cv_adapter\token.json
+
+[*] Подключение к Google Sheets...
+[OAuth] Обновляем токен доступа...
+[OAuth] Token сохранён: C:\Projects\cv_adapter\token.json
+    ✓ Авторизация успешна
+
+[0/2] LinkedIn Search: импорт вакансий в лист 'Search DataBase'...
+      • Проверяю Google Sheets (spreadsheet=1Xum7yEVyzxjjSE676oFEUE94T5-Zg7n7mjn2VwBuWlQ, sheet='Search DataBase')...
+      • Читаю профиль поиска (sheet='Primary Filter')...
+      • Активных поисков: 5; известных URL: 107; лимит: 60
+      • LinkedIn debug URL: http://localhost:9222
+      • Debug browser уже запущен: endpoint доступен (Chrome/147.0.7727.102)
+
+📊 Распределение общего лимита по весам:
+   [1] Project Manager | вес=3 | стартовая квота=18
+   [2] Product Owner | вес=2 | стартовая квота=12
+   [3] Business Analyst | вес=1 | стартовая квота=6
+   [4] AI specialist | вес=2 | стартовая квота=12
+   [5] AI Automation | вес=2 | стартовая квота=12
+
+🔍 LinkedIn поиск: Project Manager
+   • Локация: Netherlands
+   • Период: последние 24 часа (r86400)
+   • Вес позиции: 3
+   • Квота на этот проход: до 18 вакансий
+   • Уровни: 3, 4
+   • Типы занятости: F, C
+   • Отрасли: IT-услуги и ИТ-консалтинг, Разработка программного обеспечения, Финансовые услуги, Технологии, информационные средства и Интернет
+   • Коды отраслей LinkedIn (f_I): 96, 4, 43, 6
+   • Фильтр отраслей будет применён через URL-параметр f_I.
+   • Пагинация LinkedIn: start=0,25,50... это смещение результатов, а не число добавленных вакансий.
+   📄 Page 1 (start=0)
+   • Скролл завершён (контейнер: ancestor-of:.job-card-container)
+   • LinkedIn вернул карточек на странице: 8 (selector: .job-card-container)
+   • LinkedIn всего по запросу: 53 вакансий
+   • Итого по странице: добавлено 0, пропущено дубликатов 8
+   ℹ На странице нет новых вакансий (пустых страниц подряд: 1)
+   📄 Page 2 (start=25)
+   • Скролл завершён (контейнер: ancestor-of:.job-card-container)
+   • LinkedIn вернул карточек на странице: 25 (selector: .job-card-container)
+      ✓ [1] Technisch projectleider - Start People @ Jobster
+      ✓ [2] Projectleider Werktuigbouwkunde (€4.215 tot €6.235, goede pensioenregeling, leaseauto) - Stiek @ Jobster
+      ✓ [3] Projectmanager - Start People @ Jobster
+      ✓ [4] Projectleider Internationaal & Nationaal - Technicum @ Jobster
+      ✓ [5] Vacature Project Lead - PortPeople @ Jobster
+      ✓ [6] Projectmanager OR "Project Manager" Internationaal regio Amsterdam - Uitzendbureau.nl @ Jobster
+      ✓ [7] Projectleider - Uitzendbureau.nl @ Jobster
+      ✓ [8] Traffic manager Join Program - Jobbird.com @ Jobster
+      ✓ [9] Projectbegeleider Tijdelijke Verkeersmaatregelen Helvoirt - Uitzendbureau.nl @ Jobster
+      ✓ [10] Werkvoorbereider - Unique @ Jobster
+      ✓ [11] Senior projectmanager @ KWD Resultaatmanagement
+      ✓ [12] Senior projectmanager @ KWD Resultaatmanagement
+      ✓ [13] Technisch Werkvoorbereider - Unique @ Jobster
+      ✓ [14] Project Management Officer - Start People @ Jobster
+      ✓ [15] Projectmanager | Leiden / Randstad - Feadship @ Jobster
+      ✓ [16] Projectleider groen | Etten - Leur - Donkergroep Etten-Leur @ Jobster
+      ✓ [17] Projectleider BAM - Technicum @ Jobster
+      ✓ [18] Projectleider onderhoud - Uitzendbureau.nl @ Jobster
+   • Итого по странице: добавлено 18, пропущено дубликатов 0
+   ✅ Поиск завершён: загружено 18 из 53 доступных (квота: 18)
+
+🔍 LinkedIn поиск: Product Owner
+   • Локация: Netherlands
+   • Период: последние 24 часа (r86400)
+   • Вес позиции: 2
+   • Квота на этот проход: до 12 вакансий
+   • Уровни: 3, 4
+   • Типы занятости: F, C
+   • Отрасли: IT-услуги и ИТ-консалтинг, Разработка программного обеспечения, Финансовые услуги, Технологии, информационные средства и Интернет
+   • Коды отраслей LinkedIn (f_I): 96, 4, 43, 6
+   • Фильтр отраслей будет применён через URL-параметр f_I.
+   • Пагинация LinkedIn: start=0,25,50... это смещение результатов, а не число добавленных вакансий.
+   📄 Page 1 (start=0)
+   • Скролл завершён (контейнер: ancestor-of:.job-card-container)
+   • LinkedIn вернул карточек на странице: 4 (selector: .job-card-container)
+   • LinkedIn всего по запросу: 4 вакансий
+   • Итого по странице: добавлено 0, пропущено дубликатов 4
+   ℹ На странице нет новых вакансий (пустых страниц подряд: 1)
+   📄 Page 2 (start=25)
+   • Скролл завершён (контейнер: window)
+   ⚠ Карточки вакансий не найдены. Состояние: по текущим фильтрам LinkedIn не показывает вакансии | title='(20) Вакансии «Product Owner» в регионе Netherlands | LinkedIn' | url=https://www.linkedin.com/jobs/search/?f_E=3%2C4&f_I=96%2C4%2C43%2C6&f_JT=F%2CC&f_TPR=r86400&keywords=Product%20Owner&location=Netherlands&sortBy=DD&start=25
+   ✅ Поиск завершён: загружено 0 из 4 доступных (квота: 12)
+   • 'Product Owner' использовал 0 из 12; возвращаю в общий пул 12.
+
+🔍 LinkedIn поиск: Business Analyst
+   • Локация: Netherlands
+   • Период: последние 24 часа (r86400)
+   • Вес позиции: 1
+   • Квота на этот проход: до 6 вакансий
+   • Уровни: 3, 4
+   • Типы занятости: F, C
+   • Отрасли: IT-услуги и ИТ-консалтинг, Разработка программного обеспечения, Финансовые услуги, Технологии, информационные средства и Интернет
+   • Коды отраслей LinkedIn (f_I): 96, 4, 43, 6
+   • Фильтр отраслей будет применён через URL-параметр f_I.
+   • Пагинация LinkedIn: start=0,25,50... это смещение результатов, а не число добавленных вакансий.
+   📄 Page 1 (start=0)
+   • Скролл завершён (контейнер: ancestor-of:.job-card-container)
+   • LinkedIn вернул карточек на странице: 4 (selector: .job-card-container)
+   • LinkedIn всего по запросу: 4 вакансий
+   • Итого по странице: добавлено 0, пропущено дубликатов 4
+   ℹ На странице нет новых вакансий (пустых страниц подряд: 1)
+   📄 Page 2 (start=25)
+   • Скролл завершён (контейнер: window)
+   ⚠ Карточки вакансий не найдены. Состояние: по текущим фильтрам LinkedIn не показывает вакансии | title='Вакансии «Business Analyst» в регионе Netherlands | LinkedIn' | url=https://www.linkedin.com/jobs/search/?keywords=Business+Analyst&location=Netherlands&f_TPR=r86400&start=25&sortBy=DD&f_E=3,4&f_JT=F,C&f_I=96,4,43,6
+   ✅ Поиск завершён: загружено 0 из 4 доступных (квота: 6)
+   • 'Business Analyst' использовал 0 из 6; возвращаю в общий пул 6.
+
+🔍 LinkedIn поиск: AI specialist
+   • Локация: Netherlands
+   • Период: последние 24 часа (r86400)
+   • Вес позиции: 2
+   • Квота на этот проход: до 12 вакансий
+   • Уровни: 3, 4
+   • Типы занятости: F, C
+   • Отрасли: IT-услуги и ИТ-консалтинг, Разработка программного обеспечения, Финансовые услуги, Технологии, информационные средства и Интернет
+   • Коды отраслей LinkedIn (f_I): 96, 4, 43, 6
+   • Фильтр отраслей будет применён через URL-параметр f_I.
+   • Пагинация LinkedIn: start=0,25,50... это смещение результатов, а не число добавленных вакансий.
+   📄 Page 1 (start=0)
+   • Скролл завершён (контейнер: ancestor-of:.job-card-container)
+   • LinkedIn вернул карточек на странице: 7 (selector: .job-card-container)
+   • LinkedIn всего по запросу: 142 вакансий
+      ✓ [1] Field Strategist, Forward Deployed Engineer with verification @ GitLab
+   • Итого по странице: добавлено 1, пропущено дубликатов 6
+   📄 Page 2 (start=25)
+   • Скролл завершён (контейнер: ancestor-of:.job-card-container)
+   • LinkedIn вернул карточек на странице: 7 (selector: .job-card-container)
+      ✓ [2] Channel Partnership Manager (GenAI/LLM) with verification @ ByteDance
+      ✓ [3] Servicetechnicus Warmte-Koudeopslag - Stiek @ Jobster
+      ✓ [4] Cloud Consultant with verification @ Open Line
+   • Итого по странице: добавлено 3, пропущено дубликатов 4
+   📄 Page 3 (start=50)
+   • Скролл завершён (контейнер: window)
+   ⚠ Карточки вакансий не найдены. Состояние: не удалось распознать состояние страницы | title='LinkedIn' | url=https://www.linkedin.com/jobs/search/?keywords=AI+specialist&location=Netherlands&f_TPR=r86400&start=50&sortBy=DD&f_E=3,4&f_JT=F,C&f_I=96,4,43,6
+   ✅ Поиск завершён: загружено 4 из 142 доступных (квота: 12)
+   • 'AI specialist' использовал 4 из 12; возвращаю в общий пул 8.
+
+🔍 LinkedIn поиск: AI Automation
+   • Локация: Netherlands
+   • Период: период LinkedIn (r86401) (r86401)
+   • Вес позиции: 2
+   • Квота на этот проход: до 12 вакансий
+   • Уровни: 3, 5
+   • Типы занятости: F, C
+   • Отрасли: IT-услуги и ИТ-консалтинг, Разработка программного обеспечения, Финансовые услуги, Технологии, информационные средства и Интернет
+   • Коды отраслей LinkedIn (f_I): 96, 4, 43, 6
+   • Фильтр отраслей будет применён через URL-параметр f_I.
+   • Пагинация LinkedIn: start=0,25,50... это смещение результатов, а не число добавленных вакансий.
+   📄 Page 1 (start=0)
+   • Скролл завершён (контейнер: window)
+   • LinkedIn вернул карточек на странице: 1 (selector: .job-card-container)
+   • LinkedIn всего по запросу: 1 вакансий
+   • Итого по странице: добавлено 0, пропущено дубликатов 1
+   ℹ На странице нет новых вакансий (пустых страниц подряд: 1)
+   📄 Page 2 (start=25)
+   ⚠ Навигация страницы сработала нестабильно — проверяю, открылась ли выдача фактически.
+   • Скролл завершён (контейнер: window)
+   ⚠ Причина навигации: Page.goto: Timeout 45000ms exceeded.
+Call log:
+  - navigating to "https://www.linkedin.com/jobs/search/?keywords=AI+Automation&location=Netherlands&f_TPR=r86401&start=25&sortBy=DD&f_E=3,5&f_JT=F,C&f_I=96,4,43,6", waiting until "domcontentloaded"
+
+   ⚠ Карточки вакансий не найдены. Состояние: по текущим фильтрам LinkedIn не показывает вакансии | title='Вакансии «AI Automation» в регионе Netherlands | LinkedIn' | url=https://www.linkedin.com/jobs/search/?keywords=AI+Automation&location=Netherlands&f_TPR=r86401&start=25&sortBy=DD&f_E=3,5&f_JT=F,C&f_I=96,4,43,6
+   ✅ Поиск завершён: загружено 0 из 1 доступных (квота: 12)
+   • 'AI Automation' использовал 0 из 12; возвращаю в общий пул 12.
+
+🔄 Запускаю добор из общего пула: осталось 38 вакансий для перераспределения.
+   • Добор для 'Project Manager' (вес=3): ещё до 38 вакансий.
+   • Добор начнётся с start=50, чтобы не повторять уже просмотренные страницы.
+
+🔍 LinkedIn поиск: Project Manager
+   • Локация: Netherlands
+   • Период: последние 24 часа (r86400)
+   • Вес позиции: 3
+   • Квота на этот проход: до 38 вакансий
+   • Уровни: 3, 4
+   • Типы занятости: F, C
+   • Отрасли: IT-услуги и ИТ-консалтинг, Разработка программного обеспечения, Финансовые услуги, Технологии, информационные средства и Интернет
+   • Коды отраслей LinkedIn (f_I): 96, 4, 43, 6
+   • Фильтр отраслей будет применён через URL-параметр f_I.
+   • Пагинация LinkedIn: start=0,25,50... это смещение результатов, а не число добавленных вакансий.
+   📄 Page 3 (start=50)
+   ⚠ Навигация страницы сработала нестабильно — проверяю, открылась ли выдача фактически.
+   • Скролл завершён (контейнер: window)
+   • LinkedIn вернул карточек на странице: 3 (selector: .job-card-container)
+      ✓ [1] Projectleider Funderingstechniek (salaris €4000 - €6000, leaseauto, 43 vrije dagen) - Stiek @ Jobster
+      ✓ [2] Projectmanager Brand- en Waterschades - ProfMatch @ Jobster
+      ✓ [3] Projectmanager Funderingstechnieken (Salaris €4500 - €6850, leaseauto, 43 vrije dagen) - Stiek @ Jobster
+   • Итого по странице: добавлено 3, пропущено дубликатов 0
+   📄 Page 4 (start=75)
+   ⚠ Навигация страницы сработала нестабильно — проверяю, открылась ли выдача фактически.
+   • Скролл завершён (контейнер: unknown)
+   ⚠ Причина навигации: Page.goto: Timeout 45000ms exceeded.
+Call log:
+  - navigating to "https://www.linkedin.com/jobs/search/?keywords=Project+Manager&location=Netherlands&f_TPR=r86400&start=75&sortBy=DD&f_E=3,4&f_JT=F,C&f_I=96,4,43,6", waiting until "domcontentloaded"
+
+   ⚠ Карточки вакансий не найдены. Состояние: не удалось распознать состояние страницы | title='LinkedIn' | url=https://www.linkedin.com/jobs/search/?keywords=Project+Manager&location=Netherlands&f_TPR=r86400&start=75&sortBy=DD&f_E=3,4&f_JT=F,C&f_I=96,4,43,6
+   ✅ Поиск завершён: 3 вакансий (квота: 38)
+   • Добор из 'Project Manager': найдено ещё 3; в пуле осталось 35.
+   • Добор для 'Project Manager' (вес=3): ещё до 35 вакансий.
+   • Добор начнётся с start=75, чтобы не повторять уже просмотренные страницы.
+
+🔍 LinkedIn поиск: Project Manager
+   • Локация: Netherlands
+   • Период: последние 24 часа (r86400)
+   • Вес позиции: 3
+   • Квота на этот проход: до 35 вакансий
+   • Уровни: 3, 4
+   • Типы занятости: F, C
+   • Отрасли: IT-услуги и ИТ-консалтинг, Разработка программного обеспечения, Финансовые услуги, Технологии, информационные средства и Интернет
+   • Коды отраслей LinkedIn (f_I): 96, 4, 43, 6
+   • Фильтр отраслей будет применён через URL-параметр f_I.
+   • Пагинация LinkedIn: start=0,25,50... это смещение результатов, а не число добавленных вакансий.
+   📄 Page 4 (start=75)
+   • Скролл завершён (контейнер: window)
+   ⚠ Карточки вакансий не найдены. Состояние: по текущим фильтрам LinkedIn не показывает вакансии | title='(20) Вакансии «Project Manager» в регионе Netherlands | LinkedIn' | url=https://www.linkedin.com/jobs/search/?f_E=3%2C4&f_I=96%2C4%2C43%2C6&f_JT=F%2CC&f_TPR=r86400&keywords=Project%20Manager&location=Netherlands&sortBy=DD&start=75
+   ✅ Поиск завершён: 0 вакансий (квота: 35)
+   • Для 'Project Manager' дополнительных вакансий не найдено; убираю из кандидатов на добор.
+   ℹ Оставшиеся 35 вакансий в пуле не удалось добрать по доступным позициям.
+    ✓ LinkedIn Search: найдено 25, добавлено 25, пропущено 0
+    ℹ Следующий шаг: запустите 'Анализ вакансий' или 'Поиск+Анализ+Адаптация'.
+
+============================================================
+  ✓ Готово!
+============================================================
+✓ Задача выполнена успешно!
+
