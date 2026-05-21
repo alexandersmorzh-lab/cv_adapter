@@ -6,7 +6,7 @@ import re
 import sys
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import gspread
 from google.oauth2.credentials import Credentials
@@ -147,6 +147,8 @@ def _authenticate() -> gspread.Client:
 _credentials: Optional[Credentials] = None
 _docs_service = None
 _drive_service = None
+_sheets_service = None
+_master_cv_doc_cache: dict[str, str] = {}
 
 
 def _get_credentials() -> Credentials:
@@ -189,6 +191,61 @@ def get_drive_service():
         if creds:
             _drive_service = build("drive", "v3", credentials=creds)
     return _drive_service
+
+
+def get_sheets_service():
+    """Google Sheets API service (low-level, для чтения rich hyperlink метаданных)."""
+    global _sheets_service
+    if _sheets_service is None:
+        creds = _get_credentials()
+        if creds:
+            _sheets_service = build("sheets", "v4", credentials=creds)
+    return _sheets_service
+
+
+def _looks_like_folder_id(value: str) -> bool:
+    return _looks_like_doc_id(value)
+
+
+def _resolve_drive_folder_id(folder_value: str) -> str:
+    folder_value = (folder_value or "").strip()
+    if not folder_value:
+        return ""
+
+    if "/folders/" in folder_value:
+        return folder_value.split("/folders/")[1].split("?")[0].split("/")[0]
+
+    if _looks_like_folder_id(folder_value):
+        return folder_value
+
+    drive = get_drive_service()
+    if not drive:
+        _log.warning("Drive service недоступен, не удалось разрешить папку по имени: %s", folder_value)
+        return ""
+
+    query = (
+        "mimeType='application/vnd.google-apps.folder' and "
+        f"name='{folder_value.replace("'", "\\'")}' and trashed=false"
+    )
+    response = drive.files().list(
+        q=query,
+        spaces="drive",
+        fields="files(id,name)",
+        pageSize=10,
+    ).execute()
+    folders = response.get("files", [])
+    if not folders:
+        _log.warning("Папка Drive не найдена по имени: %s", folder_value)
+        return ""
+
+    if len(folders) > 1:
+        _log.warning(
+            "Найдено несколько папок Drive с именем %r, используется первая: %s",
+            folder_value,
+            folders[0].get("id", ""),
+        )
+
+    return folders[0].get("id", "")
 
 
 def get_base_cv(client: gspread.Client) -> str:
@@ -237,6 +294,342 @@ def get_base_cv(client: gspread.Client) -> str:
         len(base_cv),
     )
     return base_cv
+
+
+def _extract_google_doc_id(value: str) -> str:
+    """Извлекает Google Doc ID из URL/формулы/сырых значений."""
+    text = (value or "").strip()
+    if not text:
+        return ""
+
+    if _looks_like_doc_id(text):
+        return text
+
+    # Формула вида =HYPERLINK("https://docs.google.com/document/d/<ID>/edit", "Label")
+    formula_url_match = re.search(r'HYPERLINK\(\s*"([^"]+)"', text, flags=re.IGNORECASE)
+    if formula_url_match:
+        text = formula_url_match.group(1).strip()
+
+    url_match = re.search(r"/document/d/([A-Za-z0-9_-]{25,})", text)
+    if url_match:
+        return url_match.group(1)
+
+    # Иногда URL может быть без /edit и с query params
+    docs_url_match = re.search(r"docs\.google\.com/document/[^\s]*", text)
+    if docs_url_match:
+        tail = docs_url_match.group(0)
+        url_match = re.search(r"/d/([A-Za-z0-9_-]{25,})", tail)
+        if url_match:
+            return url_match.group(1)
+
+    return ""
+
+
+def _find_first_doc_url(value: Any) -> str:
+    """Рекурсивно ищет первую ссылку на Google Doc в произвольной структуре cellData."""
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return ""
+        if text.startswith("http://") or text.startswith("https://"):
+            if "docs.google.com/document" in text:
+                return text
+            return ""
+        match = re.search(r"https?://docs\.google\.com/document/[^\s\"'>)]+", text)
+        if match:
+            return match.group(0)
+        return ""
+
+    if isinstance(value, dict):
+        for nested in value.values():
+            found = _find_first_doc_url(nested)
+            if found:
+                return found
+        return ""
+
+    if isinstance(value, list):
+        for item in value:
+            found = _find_first_doc_url(item)
+            if found:
+                return found
+        return ""
+
+    return ""
+
+
+def _extract_link_from_cell_data(cell_data: dict[str, Any]) -> str:
+    """Извлекает URL из cellData (rich hyperlink, text format runs, formula hyperlink)."""
+    if not isinstance(cell_data, dict):
+        return ""
+
+    hyperlink = (cell_data.get("hyperlink") or "").strip()
+    if hyperlink:
+        return hyperlink
+
+    for run in cell_data.get("textFormatRuns") or []:
+        if not isinstance(run, dict):
+            continue
+        fmt = run.get("format") or {}
+        if not isinstance(fmt, dict):
+            continue
+        link = fmt.get("link") or {}
+        if not isinstance(link, dict):
+            continue
+        uri = (link.get("uri") or "").strip()
+        if uri:
+            return uri
+
+    # Smart chips / rich links (новые типы ссылок в Google Sheets)
+    for chip_run in cell_data.get("chipRuns") or []:
+        if not isinstance(chip_run, dict):
+            continue
+        chip = chip_run.get("chip") or {}
+        if not isinstance(chip, dict):
+            continue
+
+        rich_link = chip.get("richLinkProperties") or {}
+        if isinstance(rich_link, dict):
+            uri = (rich_link.get("uri") or "").strip()
+            if uri:
+                return uri
+
+        # fallback на случай отличающейся структуры в API
+        found_chip_url = _find_first_doc_url(chip)
+        if found_chip_url:
+            return found_chip_url
+
+    user_entered = cell_data.get("userEnteredValue") or {}
+    if isinstance(user_entered, dict):
+        formula_value = (user_entered.get("formulaValue") or "").strip()
+        if formula_value:
+            formula_url_match = re.search(
+                r'HYPERLINK\(\s*"([^"]+)"', formula_value, flags=re.IGNORECASE
+            )
+            if formula_url_match:
+                return formula_url_match.group(1).strip()
+
+    # fallback: если ячейка хранит URL как plain text
+    formatted_value = (cell_data.get("formattedValue") or "").strip()
+    if formatted_value.startswith("http://") or formatted_value.startswith("https://"):
+        return formatted_value
+
+    # Последний fallback: обойти все поля cellData и попробовать найти docs URL рекурсивно
+    deep_found = _find_first_doc_url(cell_data)
+    if deep_found:
+        return deep_found
+
+    return ""
+
+
+def _get_master_cv_col_b_links() -> dict[int, str]:
+    """Возвращает маппинг row_num -> URL из колонки B листа Master CV (включая rich links)."""
+    sheets_service = get_sheets_service()
+    if not sheets_service:
+        _log.debug("Sheets API service недоступен: rich hyperlinks не будут извлечены")
+        return {}
+
+    safe_sheet_name = config.SHEET_MASTER_CV.replace("'", "''")
+    source_range = f"'{safe_sheet_name}'!A:C"
+
+    try:
+        response = (
+            sheets_service.spreadsheets()
+            .get(
+                spreadsheetId=config.SPREADSHEET_ID,
+                ranges=[source_range],
+                includeGridData=True,
+                fields=(
+                    "sheets(data(rowData(values("
+                    "formattedValue,hyperlink,textFormatRuns(format(link)),"
+                    "chipRuns(chip),userEnteredValue"
+                    "))))"
+                ),
+            )
+            .execute()
+        )
+    except Exception as error:
+        _log.warning("Не удалось прочитать rich hyperlinks из %s: %s", config.SHEET_MASTER_CV, error)
+        return {}
+
+    links: dict[int, str] = {}
+    for sheet in response.get("sheets", []):
+        for data in sheet.get("data", []):
+            row_data = data.get("rowData") or []
+            for idx, row in enumerate(row_data, start=1):
+                values = row.get("values") or []
+                if len(values) < 2:
+                    continue
+                link = _extract_link_from_cell_data(values[1])
+                if link:
+                    links[idx] = link
+    return links
+
+
+def get_master_cv_variants(client: gspread.Client) -> list[dict[str, Any]]:
+    """Читает варианты резюме из листа Master CV (строки Master_CV_*).
+
+    Ожидаемая структура:
+    - Колонка A: имя записи, начинается с Master_CV_
+    - Колонка B: ссылка/ID Google Doc с текстом резюме
+    - Колонка C: маска поиска по title (или '*')
+    """
+    spreadsheet = client.open_by_key(config.SPREADSHEET_ID)
+    worksheet = spreadsheet.worksheet(config.SHEET_MASTER_CV)
+    all_values = worksheet.get_all_values()
+    col_b_links = _get_master_cv_col_b_links()
+
+    variants: list[dict[str, Any]] = []
+    for row_num, row in enumerate(all_values, start=1):
+        name = (row[0] if len(row) > 0 else "").strip()
+        if not name or not name.lower().startswith("master_cv_"):
+            continue
+
+        title_mask = (row[2] if len(row) > 2 else "").strip()
+        if not title_mask:
+            _log.warning(
+                "Master CV: строка %s (%s) пропущена: пустая маска в колонке C",
+                row_num,
+                name,
+            )
+            continue
+
+        col_b_text = (row[1] if len(row) > 1 else "").strip()
+        doc_ref = (col_b_links.get(row_num) or col_b_text).strip()
+        doc_id = _extract_google_doc_id(doc_ref)
+        if not doc_id:
+            _log.warning(
+                "Master CV: строка %s (%s) пропущена: не удалось извлечь Doc ID из колонки B (%r)",
+                row_num,
+                name,
+                doc_ref or col_b_text,
+            )
+            continue
+
+        variants.append(
+            {
+                "name": name,
+                "title_mask": title_mask,
+                "doc_id": doc_id,
+                "doc_ref": doc_ref,
+                "row_num": row_num,
+            }
+        )
+
+    if not variants:
+        raise ValueError(
+            "Не найдены валидные строки Master_CV_* в листе Master CV "
+            "(A=имя Master_CV_*, B=ссылка/ID Google Doc, C=маска title)."
+        )
+
+    return variants
+
+
+def select_master_cv_for_title(master_cv_variants: list[dict[str, Any]], title: str) -> dict[str, Any]:
+    """Выбирает подходящий вариант CV по title.
+
+    Правила:
+    - ищем contains(match) без учета регистра по маскам из колонки C, кроме '*'
+    - если нет совпадений, используем запись с маской '*'
+    - если и '*' нет, используем первую запись списка
+    """
+    if not master_cv_variants:
+        raise ValueError("Список вариантов Master CV пуст")
+
+    title_norm = (title or "").strip().lower()
+    defaults = [v for v in master_cv_variants if str(v.get("title_mask", "")).strip() == "*"]
+
+    matches: list[dict[str, Any]] = []
+    if title_norm:
+        for variant in master_cv_variants:
+            mask = str(variant.get("title_mask", "")).strip()
+            if not mask or mask == "*":
+                continue
+            if mask.lower() in title_norm:
+                matches.append(variant)
+
+    if matches:
+        return {
+            "variant": matches[0],
+            "reason": "matched",
+            "multiple_matches": len(matches) > 1,
+            "multiple_defaults": len(defaults) > 1,
+            "matched_count": len(matches),
+            "default_count": len(defaults),
+        }
+
+    if defaults:
+        return {
+            "variant": defaults[0],
+            "reason": "fallback_star",
+            "multiple_matches": False,
+            "multiple_defaults": len(defaults) > 1,
+            "matched_count": 0,
+            "default_count": len(defaults),
+        }
+
+    return {
+        "variant": master_cv_variants[0],
+        "reason": "fallback_first",
+        "multiple_matches": False,
+        "multiple_defaults": False,
+        "matched_count": 0,
+        "default_count": 0,
+    }
+
+
+def _extract_text_from_doc_elements(elements: list[dict[str, Any]]) -> str:
+    chunks: list[str] = []
+    for element in elements or []:
+        paragraph = element.get("paragraph")
+        if isinstance(paragraph, dict):
+            for paragraph_element in paragraph.get("elements", []):
+                text_run = paragraph_element.get("textRun") or {}
+                if isinstance(text_run, dict):
+                    chunks.append(text_run.get("content", ""))
+
+        table = element.get("table")
+        if isinstance(table, dict):
+            for table_row in table.get("tableRows", []):
+                for table_cell in table_row.get("tableCells", []):
+                    chunks.append(_extract_text_from_doc_elements(table_cell.get("content", [])))
+
+        toc = element.get("tableOfContents")
+        if isinstance(toc, dict):
+            chunks.append(_extract_text_from_doc_elements(toc.get("content", [])))
+
+    return "".join(chunks)
+
+
+def get_google_doc_text(doc_id: str) -> str:
+    """Читает plain text из Google Doc по document ID."""
+    docs = get_docs_service()
+    if not docs:
+        raise RuntimeError("Google Docs API не инициализирован (нет credentials)")
+
+    try:
+        document = docs.documents().get(documentId=doc_id).execute()
+    except Exception as error:
+        raise RuntimeError(f"Не удалось прочитать Google Doc {doc_id}: {error}") from error
+
+    body_content = (document.get("body") or {}).get("content") or []
+    text = _extract_text_from_doc_elements(body_content).replace("\u000b", "\n").strip()
+    if not text:
+        raise ValueError(f"Google Doc {doc_id} пуст или не содержит текст")
+    return text
+
+
+def get_master_cv_text_for_variant(variant: dict[str, Any]) -> str:
+    """Возвращает текст резюме для выбранного варианта Master CV (с кэшем на запуск)."""
+    doc_id = str(variant.get("doc_id", "")).strip()
+    if not doc_id:
+        raise ValueError(f"У варианта {variant.get('name', '')} отсутствует doc_id")
+
+    if doc_id in _master_cv_doc_cache:
+        return _master_cv_doc_cache[doc_id]
+
+    text = get_google_doc_text(doc_id)
+    _master_cv_doc_cache[doc_id] = text
+    return text
 
 
 def get_tracker_rows(client: gspread.Client):
@@ -733,6 +1126,7 @@ def get_master_cv_metadata(client: gspread.Client) -> dict:
         },
     }
     prompt_rows: list[tuple[str, str]] = []
+    preferred_label = (config.MASTER_CV_SYSTEM_PROMPT_LABEL or "System_prompt").strip().lower()
     
     # Предполагаем col A - название раздела, col B - значение
     for row in all_values:
@@ -757,7 +1151,7 @@ def get_master_cv_metadata(client: gspread.Client) -> dict:
                     value,
                 )
                 result["template_doc_id"] = ""
-        elif label == "system_prompt" or label.startswith("system_prompt_"):
+        elif label == preferred_label or label == "system_prompt" or label.startswith("system_prompt_"):
             if value:
                 prompt_rows.append((label, value))
         elif label == "adapted_cvs_folder":
@@ -774,7 +1168,6 @@ def get_master_cv_metadata(client: gspread.Client) -> dict:
         elif label == "applicant linkedin":
             result["applicant"]["linkedin"] = value
 
-    preferred_label = (config.MASTER_CV_SYSTEM_PROMPT_LABEL or "System_prompt").strip().lower()
     prompt_map = {label: value for label, value in prompt_rows}
 
     if preferred_label in prompt_map:
@@ -796,11 +1189,13 @@ def copy_google_doc(template_doc_id: str, new_title: str, folder_id: str = None)
     drive = get_drive_service()
     if not drive:
         raise RuntimeError("Google Drive API не инициализирован (нет credentials)")
+
+    resolved_folder_id = _resolve_drive_folder_id(folder_id or "")
     
     try:
         file_metadata = {"name": new_title}
-        if folder_id:
-            file_metadata["parents"] = [folder_id]
+        if resolved_folder_id:
+            file_metadata["parents"] = [resolved_folder_id]
         
         result = drive.files().copy(
             fileId=template_doc_id,

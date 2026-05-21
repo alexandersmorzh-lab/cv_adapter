@@ -108,25 +108,30 @@ def main():
         _run_linkedin(client, standalone=True)
         return
 
-    # 3. Читаем базовое резюме
-    print("[*] Загрузка базового резюме (лист 'Master CV')...", flush=True)
+    # 3. Читаем варианты базового резюме
+    print("[*] Загрузка вариантов Master CV (лист 'Master CV')...", flush=True)
     try:
-        base_cv = sheets.get_base_cv(client)
-        if not base_cv.strip():
-            _fatal("Лист 'Master CV' пуст. Добавьте базовое резюме.")
-        print(f"    ✓ Резюме загружено ({len(base_cv)} символов)", flush=True)
+        master_cv_variants = sheets.get_master_cv_variants(client)
+        fallback_count = sum(
+            1 for v in master_cv_variants if str(v.get("title_mask", "")).strip() == "*"
+        )
+        print(
+            f"    ✓ Вариантов резюме загружено: {len(master_cv_variants)}; "
+            f"fallback '*' записей: {fallback_count}",
+            flush=True,
+        )
     except Exception as e:
         _fatal(f"Ошибка чтения листа Master CV: {e}")
 
     # 4. Выполняем операцию в зависимости от режима
     if mode == "analyze":
-        _run_analyzer(client, base_cv)
+        _run_analyzer(client, master_cv_variants)
     elif mode == "adapt":
-        _run_adapter(client, base_cv)
+        _run_adapter(client, master_cv_variants)
     elif mode == "all":
         _run_linkedin(client, standalone=False)
-        _run_analyzer(client, base_cv)
-        _run_adapter(client, base_cv)
+        _run_analyzer(client, master_cv_variants)
+        _run_adapter(client, master_cv_variants)
 
 
 def _get_mode() -> str:
@@ -169,12 +174,12 @@ def _run_linkedin(client: gspread.Client, *, standalone: bool = True):
         _pause_and_exit(0)
 
 
-def _run_analyzer(client: gspread.Client, base_cv: str):
+def _run_analyzer(client: gspread.Client, master_cv_variants: list[dict]):
     """Запускает анализатор вакансий из Search DataBase."""
     print("\n[1/2] Analyzer: обработка листа 'Search DataBase' и синхронизация с Tracker...", flush=True)
     try:
         analyzed_ok, analyzed_total, added_to_tracker = analyzer.run_analyzer_search_database(
-            client=client, base_cv=base_cv
+            client=client, master_cv_variants=master_cv_variants
         )
     except ValueError as e:
         _fatal(str(e))
@@ -205,7 +210,7 @@ def _run_analyzer(client: gspread.Client, base_cv: str):
         print(f"    ℹ Добавлено в Tracker: {added_to_tracker} строк", flush=True)
 
 
-def _run_adapter(client: gspread.Client, base_cv: str):
+def _run_adapter(client: gspread.Client, master_cv_variants: list[dict]):
     """Запускает адаптацию резюме для строк из Tracker."""
     print("\n[2/2] Resume Adapter: создание адаптированных резюме...", flush=True)
     model_info = llm.get_effective_model_info("generation")
@@ -226,7 +231,7 @@ def _run_adapter(client: gspread.Client, base_cv: str):
     try:
         processed_ok, processed_total = resume_adapter.run_resume_adapter(
             client=client,
-            base_cv=base_cv,
+            master_cv_variants=master_cv_variants,
             delay_sec=2.0
         )
     except ValueError as e:

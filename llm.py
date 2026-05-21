@@ -161,29 +161,109 @@ def get_effective_model_name(model_kind: str = "generation") -> str:
     return get_effective_model_info(model_kind)["model"]
 
 
+def _extract_balanced_json_object(text: str) -> str:
+    """Возвращает первый сбалансированный JSON-объект из текста или пустую строку."""
+    in_string = False
+    escape = False
+    depth = 0
+    start = -1
+
+    for idx, ch in enumerate(text):
+        if in_string:
+            if escape:
+                escape = False
+                continue
+            if ch == "\\":
+                escape = True
+                continue
+            if ch == '"':
+                in_string = False
+            continue
+
+        if ch == '"':
+            in_string = True
+            continue
+
+        if ch == "{":
+            if depth == 0:
+                start = idx
+            depth += 1
+            continue
+
+        if ch == "}" and depth > 0:
+            depth -= 1
+            if depth == 0 and start != -1:
+                return text[start : idx + 1]
+
+    return ""
+
+
+def _prepare_json_candidate(raw_text: str) -> str:
+    text = (raw_text or "").strip()
+
+    # Частый случай: модель оборачивает в ```json ... ```
+    if text.startswith("```"):
+        parts = text.split("```")
+        candidates = [p.strip() for p in parts if p.strip() and not p.strip().lower().startswith("json")]
+        if candidates:
+            text = max(candidates, key=len)
+
+    balanced = _extract_balanced_json_object(text)
+    if balanced:
+        return balanced
+
+    # fallback, если балансировщик не сработал
+    l = text.find("{")
+    r = text.rfind("}")
+    if l != -1 and r != -1 and r > l:
+        return text[l : r + 1]
+    return text
+
+
 def generate_json(*, system_prompt: str, user_prompt: str, temperature: float = 0.2) -> dict:
     """
     Просит модель вернуть JSON-объект. Пытается распарсить ответ максимально устойчиво.
     Возвращает dict (или кидает исключение, если распарсить не удалось).
     """
-    text = generate_text(system_prompt=system_prompt, user_prompt=user_prompt, temperature=temperature)
-    text = text.strip()
+    max_attempts = 3
+    last_error = None
+    base_prompt = user_prompt
 
-    # Частый случай: модель оборачивает в ```json ... ```
-    if text.startswith("```"):
-        parts = text.split("```")
-        # Берём самый большой блок между тройными бэктиками
-        candidates = [p.strip() for p in parts if p.strip() and not p.strip().lower().startswith("json")]
-        if candidates:
-            text = max(candidates, key=len)
+    for attempt in range(1, max_attempts + 1):
+        current_prompt = base_prompt
+        current_temperature = temperature
+        if attempt > 1:
+            current_prompt = (
+                f"{base_prompt}\n\n"
+                "ВАЖНО: предыдущий ответ был невалидным JSON. "
+                "Верни ТОЛЬКО один валидный JSON-объект без markdown, без пояснений и без лишнего текста."
+            )
+            current_temperature = 0.0
 
-    # Пытаемся вырезать JSON по первым/последним скобкам
-    l = text.find("{")
-    r = text.rfind("}")
-    if l != -1 and r != -1 and r > l:
-        text = text[l : r + 1]
+        raw = generate_text(
+            system_prompt=system_prompt,
+            user_prompt=current_prompt,
+            temperature=current_temperature,
+            model_kind="scoring",
+        )
+        candidate = _prepare_json_candidate(raw)
 
-    return json.loads(text)
+        try:
+            return json.loads(candidate)
+        except json.JSONDecodeError as e:
+            last_error = e
+            _log.warning(
+                "generate_json: invalid JSON on attempt %s/%s: %s",
+                attempt,
+                max_attempts,
+                e,
+            )
+
+    preview = (candidate[:220] + "...") if len(candidate) > 220 else candidate
+    raise ValueError(
+        "LLM вернул невалидный JSON после 3 попыток: "
+        f"{last_error}. Фрагмент ответа: {preview}"
+    )
 
 
 def _strip_header(text: str) -> str:

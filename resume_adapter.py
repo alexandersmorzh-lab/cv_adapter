@@ -21,7 +21,11 @@ def check_stop_requested() -> bool:
     return stop_file.exists()
 
 
-def run_resume_adapter(client: gspread.Client, base_cv: str, delay_sec: float = 2.0) -> Tuple[int, int]:
+def run_resume_adapter(
+    client: gspread.Client,
+    master_cv_variants: list[dict],
+    delay_sec: float = 2.0,
+) -> Tuple[int, int]:
     """
     Обрабатывает все строки в листе Tracker и создает адаптированные резюме.
     
@@ -31,7 +35,7 @@ def run_resume_adapter(client: gspread.Client, base_cv: str, delay_sec: float = 
     
     Args:
         client: gspread.Client
-        base_cv: базовое резюме соискателя
+        master_cv_variants: список вариантов Master CV (ссылки на Google Docs + маски title)
         delay_sec: задержка между запросами к LLM (для rate limiting)
     
     Returns:
@@ -119,6 +123,40 @@ def run_resume_adapter(client: gspread.Client, base_cv: str, delay_sec: float = 
         
         try:
             print(f"подготовка резюме {idx}/{processed_total}({company} / {title})")
+
+            cv_selection = sheets.select_master_cv_for_title(master_cv_variants, title)
+            cv_variant = cv_selection["variant"]
+            base_cv = sheets.get_master_cv_text_for_variant(cv_variant)
+
+            if cv_selection.get("multiple_matches"):
+                _log.warning(
+                    "Resume Adapter: Title=%r совпал с несколькими масками Master CV; выбрана первая строка %s (%s)",
+                    title,
+                    cv_variant.get("row_num"),
+                    cv_variant.get("name"),
+                )
+            if cv_selection.get("multiple_defaults"):
+                _log.warning(
+                    "Resume Adapter: найдено несколько fallback-масок '*' в Master CV; выбрана первая строка %s (%s)",
+                    cv_variant.get("row_num"),
+                    cv_variant.get("name"),
+                )
+            if cv_selection.get("reason") == "fallback_first":
+                _log.warning(
+                    "Resume Adapter: для Title=%r не найдена маска и нет '*' fallback; используется первая запись %s (%s)",
+                    title,
+                    cv_variant.get("row_num"),
+                    cv_variant.get("name"),
+                )
+
+            _log.debug(
+                "Resume Adapter: выбран Master CV %s (mask=%r row=%s reason=%s title=%r)",
+                cv_variant.get("name"),
+                cv_variant.get("title_mask"),
+                cv_variant.get("row_num"),
+                cv_selection.get("reason"),
+                title,
+            )
             
             # Создаём адаптированное резюме
             doc_url, raw_cv_text = cv_docs.create_adapted_cv_document(

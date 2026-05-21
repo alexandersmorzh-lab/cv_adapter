@@ -15,6 +15,7 @@ MVP-режим:
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 import difflib
 import json
 import logging
@@ -29,6 +30,17 @@ from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 import config
 
 _log = logging.getLogger(__name__)
+
+_TRANSIENT_NETWORK_ERROR_MARKERS = (
+    "NameResolutionError",
+    "getaddrinfo failed",
+    "Temporary failure in name resolution",
+    "HTTPSConnectionPool",
+    "Connection aborted",
+    "Connection reset",
+    "Read timed out",
+    "timed out",
+)
 
 STRICT_CARD_SELECTORS = [
     "ul.jobs-search__results-list > li",
@@ -1546,6 +1558,7 @@ async def _collect_jobs(
     search_profile: list[dict[str, Any]],
     existing_urls: set[str],
     wrong_phrases: list[str] | None = None,
+    on_jobs_batch: Callable[[list[dict[str, str]], str], None] | None = None,
 ) -> list[dict[str, str]]:
     async_playwright = _require_playwright()
     _ensure_debug_browser_available()
@@ -1598,6 +1611,8 @@ async def _collect_jobs(
                     wrong_phrases=wrong_phrases,
                 )
                 all_jobs.extend(jobs)
+                if jobs and on_jobs_batch is not None:
+                    on_jobs_batch(jobs, search.get("keywords", ""))
                 next_start_by_search_id[id(search)] = max(0, int(next_start or 0))
 
                 found = len(jobs)
@@ -1662,6 +1677,8 @@ async def _collect_jobs(
                             next_start_by_search_id[id(search)] = max(0, int(next_start or resume_from))
                             used = len(extra_jobs)
                             all_jobs.extend(extra_jobs)
+                            if extra_jobs and on_jobs_batch is not None:
+                                on_jobs_batch(extra_jobs, f"{search.get('keywords', '')} [top-up]")
 
                             if used > 0:
                                 shared_pool -= used
@@ -1711,6 +1728,54 @@ def _make_sheet_row(headers: list[str], job: dict[str, str]) -> list[str]:
     return row
 
 
+def _is_transient_network_error(exc: Exception) -> bool:
+    text = f"{type(exc).__name__}: {exc}"
+    return any(marker in text for marker in _TRANSIENT_NETWORK_ERROR_MARKERS)
+
+
+def _append_rows_with_retry(worksheet, rows_to_append: list[list[str]], *, max_attempts: int = 4) -> None:
+    for attempt in range(1, max_attempts + 1):
+        try:
+            worksheet.append_rows(rows_to_append, value_input_option="USER_ENTERED")
+            return
+        except Exception as e:
+            if attempt >= max_attempts or not _is_transient_network_error(e):
+                raise
+
+            backoff_sec = min(20.0, float(attempt * 2))
+            print(
+                f"      ⚠ Ошибка сети при сохранении в Google Sheets (попытка {attempt}/{max_attempts}): {e}",
+                flush=True,
+            )
+            print(f"      • Повторю сохранение через {backoff_sec:.0f} сек...", flush=True)
+            time.sleep(backoff_sec)
+
+
+def _write_failed_batch_backup(
+    *,
+    headers: list[str],
+    rows_to_append: list[list[str]],
+    batch_label: str,
+    error: Exception,
+) -> Path:
+    backup_dir = Path(config.BASE_DIR) / "scripts"
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    backup_path = backup_dir / "linkedin_unsaved_batches.jsonl"
+
+    payload = {
+        "saved_at_utc": datetime.now(timezone.utc).isoformat(),
+        "batch_label": batch_label,
+        "error": str(error),
+        "headers": headers,
+        "rows": rows_to_append,
+    }
+
+    with backup_path.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(payload, ensure_ascii=False) + "\n")
+
+    return backup_path
+
+
 def run_linkedin_search_import(*, client) -> tuple[int, int, int]:
     """
     Запускает импорт вакансий из LinkedIn в Search DataBase.
@@ -1756,27 +1821,63 @@ def run_linkedin_search_import(*, client) -> tuple[int, int, int]:
     print(f"      • Загружено запрещённых фраз для фильтрации: {len(wrong_phrases)}", flush=True)
 
     try:
-        jobs = asyncio.run(_collect_jobs(search_profile, existing_urls, wrong_phrases=wrong_phrases))
+        appended_rows = 0
+        skipped = 0
+
+        def _flush_batch(jobs_batch: list[dict[str, str]], batch_label: str):
+            nonlocal appended_rows, skipped
+
+            rows_to_append: list[list[str]] = []
+            batch_skipped = 0
+
+            for job in jobs_batch:
+                url = (job.get("url") or "").strip()
+                if not url:
+                    batch_skipped += 1
+                    continue
+                if url in existing_urls:
+                    batch_skipped += 1
+                    continue
+                rows_to_append.append(_make_sheet_row(headers, job))
+                existing_urls.add(url)
+
+            skipped += batch_skipped
+
+            if not rows_to_append:
+                return
+
+            try:
+                _append_rows_with_retry(worksheet, rows_to_append)
+                appended_rows += len(rows_to_append)
+                print(
+                    f"      • Сохранено в Search DataBase: +{len(rows_to_append)} (позиция: {batch_label})",
+                    flush=True,
+                )
+            except Exception as e:
+                backup_path = _write_failed_batch_backup(
+                    headers=headers,
+                    rows_to_append=rows_to_append,
+                    batch_label=batch_label,
+                    error=e,
+                )
+                print(
+                    "      ⚠ Не удалось сохранить батч в Google Sheets. "
+                    f"Батч сохранён локально: {backup_path}",
+                    flush=True,
+                )
+                print("      • Продолжаю сбор вакансий, чтобы не терять прогон.", flush=True)
+
+        jobs = asyncio.run(
+            _collect_jobs(
+                search_profile,
+                existing_urls,
+                wrong_phrases=wrong_phrases,
+                on_jobs_batch=_flush_batch,
+            )
+        )
     except Exception as e:
         raise RuntimeError(str(e)) from e
     if not jobs:
         return 0, 0, 0
 
-    rows_to_append: list[list[str]] = []
-    skipped = 0
-
-    for job in jobs:
-        url = (job.get("url") or "").strip()
-        if not url:
-            skipped += 1
-            continue
-        if url in existing_urls:
-            skipped += 1
-            continue
-        rows_to_append.append(_make_sheet_row(headers, job))
-        existing_urls.add(url)
-
-    if rows_to_append:
-        worksheet.append_rows(rows_to_append, value_input_option="USER_ENTERED")
-
-    return len(jobs), len(rows_to_append), skipped
+    return len(jobs), appended_rows, skipped

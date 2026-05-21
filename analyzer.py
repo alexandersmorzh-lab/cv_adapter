@@ -640,7 +640,7 @@ def check_stop_requested() -> bool:
     return stop_file.exists()
 
 
-def run_analyzer_search_database(*, client, base_cv: str) -> tuple[int, int, int]:
+def run_analyzer_search_database(*, client, master_cv_variants: list[dict[str, Any]]) -> tuple[int, int, int]:
     """
     Новый поток обработки (04.04.2026):
     - Начинаем с листа Search DataBase
@@ -686,6 +686,8 @@ def run_analyzer_search_database(*, client, base_cv: str) -> tuple[int, int, int
         len(additional_filters),
     )
 
+    col_title = sheets._find_col(headers, "Title")
+
     ok = 0
     wrong_count = 0
     added_to_tracker = 0
@@ -693,6 +695,7 @@ def run_analyzer_search_database(*, client, base_cv: str) -> tuple[int, int, int
     for idx, row in enumerate(rows, start=1):
         row_num = row["row_num"]
         description = row["description"]
+        title = sheets._cell(row.get("row_data", []), col_title) if col_title is not None else ""
         preview = description[:60].replace("\n", " ")
         print(f"  [SearchDB {idx}/{len(rows)}] Строка {row_num}: {preview}...", flush=True)
 
@@ -726,6 +729,40 @@ def run_analyzer_search_database(*, client, base_cv: str) -> tuple[int, int, int
 
         # Анализировать вакансию
         try:
+            cv_selection = sheets.select_master_cv_for_title(master_cv_variants, title)
+            cv_variant = cv_selection["variant"]
+            base_cv = sheets.get_master_cv_text_for_variant(cv_variant)
+
+            if cv_selection.get("multiple_matches"):
+                _log.warning(
+                    "Analyzer: Title=%r совпал с несколькими масками Master CV; выбрана первая строка %s (%s)",
+                    title,
+                    cv_variant.get("row_num"),
+                    cv_variant.get("name"),
+                )
+            if cv_selection.get("multiple_defaults"):
+                _log.warning(
+                    "Analyzer: найдено несколько fallback-масок '*' в Master CV; выбрана первая строка %s (%s)",
+                    cv_variant.get("row_num"),
+                    cv_variant.get("name"),
+                )
+            if cv_selection.get("reason") == "fallback_first":
+                _log.warning(
+                    "Analyzer: для Title=%r не найдена маска и нет '*' fallback; используется первая запись %s (%s)",
+                    title,
+                    cv_variant.get("row_num"),
+                    cv_variant.get("name"),
+                )
+
+            _log.debug(
+                "Analyzer: выбран Master CV %s (mask=%r row=%s reason=%s title=%r)",
+                cv_variant.get("name"),
+                cv_variant.get("title_mask"),
+                cv_variant.get("row_num"),
+                cv_selection.get("reason"),
+                title,
+            )
+
             print(f"         → запрос к LLM ({config.LLM_PROVIDER}) для скоринга…", flush=True)
             result = analyze_job(
                 base_cv=base_cv,

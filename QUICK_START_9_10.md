@@ -18,14 +18,32 @@
 
 ### Шаг 1: Конфигурация Master CV
 
-Откройте Google Sheet, лист "Master CV". Убедитесь, что есть строки:
+Откройте Google Sheet, лист "Master CV".
+
+Убедитесь, что есть служебные строки:
 
 ```
-Master CV         | [ваше базовое резюме текстом]
 CV Doc Template   | https://docs.google.com/document/d/YOUR_TEMPLATE_ID/edit
 System_prompt     | [системный промпт для LLM]
 Adapted_CVs_F...  | https://drive.google.com/drive/folders/YOUR_FOLDER_ID
 ```
+
+И есть строки вариантов резюме формата:
+
+```
+Master_CV_Project_Manager    | https://docs.google.com/document/d/DOC_ID_1/edit | project manager
+Master_CV_Business_Analyst   | https://docs.google.com/document/d/DOC_ID_2/edit | business analyst
+Master_CV_Default            | https://docs.google.com/document/d/DOC_ID_3/edit | *
+```
+
+Где:
+- колонка A: имя, начинающееся с `Master_CV_`
+- колонка B: ссылка/ID Google Doc с текстом резюме
+- колонка C: маска поиска по полю `Title` (без учета регистра)
+
+Поддерживаются оба варианта ссылки в колонке B:
+- обычный URL/ID в тексте ячейки
+- «красивая» гиперссылка (rich link), когда в ячейке показано название документа
 
 **Где получить ID:**
 - Template Doc ID: откройте Google Doc → адрес строки `/d/YOUR_ID/edit`

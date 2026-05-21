@@ -1,0 +1,379 @@
+
+==================================================
+Запуск задачи: linkedin
+==================================================
+
+✓ Найден сохранённый token.json
+============================================================
+  CV Adapter — адаптация резюме под вакансии
+============================================================
+[build] source=git | commit=80e7045 | branch=main | built_at=2026-04-29T09:08:32+03:00 | dirty=yes
+[setup] .env найден: C:\Projects\cv_adapter\.env
+[setup] OAuth credentials найден: C:\Projects\cv_adapter\client_secret.json
+[setup] token.json найден: C:\Projects\cv_adapter\token.json
+
+[*] Подключение к Google Sheets...
+    ✓ Авторизация успешна
+
+[0/2] LinkedIn Search: импорт вакансий в лист 'Search DataBase'...
+      • Проверяю Google Sheets (spreadsheet=1Xum7yEVyzxjjSE676oFEUE94T5-Zg7n7mjn2VwBuWlQ, sheet='Search DataBase')...
+      • Читаю профиль поиска (sheet='Primary Filter')...
+      • Активных поисков: 5; известных URL: 265; лимит: 60
+      • Загружено запрещённых фраз для фильтрации: 24
+      • LinkedIn debug URL: http://localhost:9222
+      • Debug browser уже запущен: endpoint доступен (Chrome/147.0.7727.119)
+
+📊 Распределение общего лимита по весам:
+   [1] Project Manager | вес=3 | стартовая квота=14
+   [2] Product Owner | вес=2 | стартовая квота=9
+   [3] Business Analyst | вес=1 | стартовая квота=5
+   [4] AI specialist | вес=6 | стартовая квота=28
+   [5] AI Automation | вес=1 | стартовая квота=4
+
+🔍 LinkedIn поиск: Project Manager
+   • Локация: Netherlands
+   • Период: последние 24 часа (r86400)
+   • Вес позиции: 3
+   • Квота на этот проход: до 14 вакансий
+   • Уровни: 3, 4
+   • Типы занятости: F, C
+   • Отрасли: IT-услуги и ИТ-консалтинг, Разработка программного обеспечения, Финансовые услуги, Технологии, информационные средства и Интернет
+   • Коды отраслей LinkedIn (f_I): 96, 4, 43, 6
+   • Фильтр отраслей будет применён через URL-параметр f_I.
+   • Пагинация LinkedIn: start=0,25,50... это смещение результатов, а не число добавленных вакансий.
+   📄 Page 1 (start=0)
+      ✓ [1] Senior Project Manager(German Speaker) with verification @ Phenom
+      ✓ [2] SAP Project Manager with verification @ Infoplus Technologies UK Limited
+      ✓ [3] Senior Project Manager with verification @ Assist Digital Netherlands
+      ✓ [4] Project Manager - AI & Microsoft Ecosystem @ Next Force Recruitment
+      ✗ [Service delivery manager with verification @ Autoriteit Financiële Markten] забанено — фраза: "bieden"
+      ✗ [Propositiemanager @ KB nationale bibliotheek] забанено — фраза: "Wat breng"
+      ✗ [Projectleider Civiele Techniek - Gemeente Loon op Zand @ Jobster] забанено — фраза: "werkt"
+      ✗ [Testmanager (Zwolle, NL) @ Booston.io] забанено — фраза: "Wat breng"
+      ✓ [5] High Touch Implementation Specialist - EMEA with verification @ Ashby
+      ✗ [Projectleider @ Groendus] забанено — фраза: "Vereisten"
+      ✓ [6] Senior IT PMO – Trading / Data Platform Migration – Zurich (Remote) @ Avanda Group
+      ✗ [Projectleider Organisatiebrede Bedrijfsapplicaties Non-M365 @ All About Work] забанено — фраза: "bieden"
+      ✗ [International Project Engineer @ Lan Handling Technologies] забанено — фраза: "bieden"
+      ✓ [7] Senior Project Manager @ Vaimo
+      ✗ [Competentiemanager with verification @ Ministerie van Defensie] забанено — фраза: "bieden"
+      ✗ [Scrum Master with verification @ Van Lanschot Kempen] забанено — фраза: "bieden"
+      ✗ [Projectmanager E-commerce @ Vendic] забанено — фраза: "Functie"
+      ✗ [Projectmanager @ MOJEO] забанено — фраза: "bieden"
+      ✗ [Projectmanager DBO with verification @ Continu Professionals] забанено — фраза: "Functie-eisen"
+      ✓ [8] Project Manager Sustainable Innovation with verification @ DLL
+      ✗ [Manager Professional Services @ Centric] забанено — фраза: "Functie"
+      ✗ [Project Manager Marketing with verification @ iO] забанено — фраза: "werkt"
+      ✗ [Project Manager High Tech Manufacturing Systems with verification @ Itility] забанено — фраза: "Wat we je bieden"
+      ✗ [Open sollicitatie– Design Manager Science, Industry & Technology with verification @ Arup] забанено — фраза: "Functie"
+      ✗ [Manager Professional Services @ Altios Cloud Experts] забанено — фраза: "Wat breng"
+   • Скролл завершён (контейнер: ancestor-of:.job-card-container)
+   • LinkedIn вернул карточек на странице: 25 (selector: .job-card-container)
+   • LinkedIn всего по запросу: 72 вакансий
+   • Итого по странице: добавлено 8, пропущено дубликатов 0, забанено 17
+   📄 Page 2 (start=25)
+      ✗ [Omgevingscoordinator Buurtaanpak - Utrecht @ Booston.io] забанено — фраза: "Wat breng"
+      ✗ [Projectleider Industrie - Kenbri Fire Fighting B.V. @ Jobster] забанено — фраза: "bieden"
+      ✗ [Projectleider - Uitzendbureau.nl @ Jobster] забанено — фраза: "Dit ben"
+      ✗ [Projectmanager - Start People @ Jobster] забанено — фраза: "Wat we je bieden"
+      ✗ [Werkvoorbereider - Unique @ Jobster] забанено — фраза: "bieden"
+      ✗ [Projectleider BAM - Technicum @ Jobster] забанено — фраза: "bieden"
+      ✗ [Technisch Werkvoorbereider - Unique @ Jobster] забанено — фраза: "bieden"
+      ✗ [Projectleider groen | Etten - Leur - Donkergroep Etten-Leur @ Jobster] забанено — фраза: "bieden"
+      ✗ [Projectleider onderhoud - Uitzendbureau.nl @ Jobster] забанено — фраза: "bieden"
+      ✗ [Project Management Officer - Start People @ Jobster] забанено — фраза: "Wat we je bieden"
+      ✗ [Werkvoorbereider - Uitzendbureau.nl @ Jobster] забанено — фраза: "Dit ben"
+      ✗ [Vacature Project Lead - PortPeople @ Jobster] забанено — фраза: "bieden"
+      ✗ [Technisch projectleider - Start People @ Jobster] забанено — фраза: "Wat we je bieden"
+      ✗ [Projectmanager OR "Project Manager" Internationaal regio Amsterdam - Uitzendbureau.nl @ Jobster] забанено — фраза: "bieden"
+      ✗ [Projectbegeleider Tijdelijke Verkeersmaatregelen Helvoirt - Uitzendbureau.nl @ Jobster] забанено — фраза: "Functie"
+      ✗ [Projectleider Verkeersinstallaties - Technicum @ Jobster] забанено — фраза: "bieden"
+      ✗ [Projectleider Bliksembeveiliging - Technicum @ Jobster] забанено — фраза: "bieden"
+      ✗ [Projectleider groen | Roosendaal - Idverde Roosendaal @ Jobster] забанено — фраза: "bieden"
+      ✗ [Projectmanager Installatietechniek - Technicum @ Jobster] забанено — фраза: "bieden"
+      ✗ [Projectmedewerker projectbureau - Jobbird.com @ Jobster] забанено — фраза: "bieden"
+      ✗ [Projectleider Service Jachtbouw - Stiek @ Jobster] забанено — фраза: "bieden"
+      ✗ [Project Lead Exterior | Kaag - Feadship @ Jobster] забанено — фраза: "Aanbod"
+      ✗ [Traffic manager Join Program - Jobbird.com @ Jobster] забанено — фраза: "bieden"
+      ✗ [Project Controller - Engineering & Planning | Hoofddorp - Feadship @ Jobster] забанено — фраза: "Aanbod"
+      ✓ [9] Scrum Master(EN) with verification @ Van Lanschot Kempen
+   • Скролл завершён (контейнер: ancestor-of:.job-card-container)
+   • LinkedIn вернул карточек на странице: 25 (selector: .job-card-container)
+   • Итого по странице: добавлено 1, пропущено дубликатов 0, забанено 24
+   📄 Page 3 (start=50)
+      ✗ [Projectleider Aanleg @ Booston.io] забанено — фраза: "Wat we je bieden"
+      ✗ [(Senior) Contractmanager Ondergrondse infra (Zwolle, NL) @ Booston.io] забанено — фраза: "bieden"
+      ✗ [Projectregisseur @ Booston.io] забанено — фраза: "Wat we je bieden"
+      ✗ [Senior Projectleider Groen @ Booston.io] забанено — фраза: "Wat we je bieden"
+      ✗ [Senior Projectleider team Projecten (Zwolle, NL) @ Booston.io] забанено — фраза: "Wat breng"
+      ✗ [Projectleider Bomen @ Booston.io] забанено — фраза: "Wat we je bieden"
+      ✗ [Projectleider Onderhoud Groen @ Booston.io] забанено — фраза: "Wat we je bieden"
+      ✗ [Senior werkvoorbereider @ Booston.io] забанено — фраза: "bieden"
+      ✗ [Projectleider Groen @ Booston.io] забанено — фраза: "Wat we je bieden"
+      ✗ [Projectleider Kabels en Leidingen - Dordrecht @ Booston.io] забанено — фраза: "bieden"
+      ✗ [Projectleider Ontwerp & Aanleg (Arnhem, NL) @ Booston.io] забанено — фраза: "Wat breng"
+      ✗ [Werkvoorbereider @ Booston.io] забанено — фраза: "Wat we je bieden"
+      ✗ [Senior Projectleider Groen @ Booston.io] забанено — фраза: "Wat we je bieden"
+      ✗ [Projectleider groen @ Booston.io] забанено — фраза: "Wat we je bieden"
+      ✗ [Projectcoördinator VRI - Ede @ Booston.io] забанено — фраза: "Wat breng"
+      ✗ [Projectleider Groen @ Booston.io] забанено — фраза: "Wat we je bieden"
+      ✗ [Projectleider Installatietechniek - Gasservice Noordholland BV @ Jobster] забанено — фраза: "bieden"
+      ✗ [(Senior) Contractmanager Bovengrondse Projecten (Zwolle, NL) @ Booston.io] забанено — фраза: "bieden"
+      ✗ [Werkvoorbereider/Calculator IPM @ Booston.io] забанено — фраза: "Wat we je bieden"
+      ✗ [Projectleider Internationaal & Nationaal - Technicum @ Jobster] забанено — фраза: "bieden"
+      ✗ [Projectleider Groen en Gebiedsbeheer - Uitzendbureau.nl @ Jobster] забанено — фраза: "bieden"
+      ✗ [Turnaround Planner Dow Terneuzen - Uitzendbureau.nl @ Jobster] забанено — фраза: "Functie"
+   • Скролл завершён (контейнер: ancestor-of:.job-card-container)
+   • LinkedIn вернул карточек на странице: 25 (selector: .job-card-container)
+   • Итого по странице: добавлено 0, пропущено дубликатов 3, забанено 22
+   ℹ На странице нет новых вакансий (пустых страниц подряд: 1)
+   📄 Page 4 (start=75)
+   ⚠ Карточки вакансий не найдены. Состояние: по текущим фильтрам LinkedIn не показывает вакансии | title='(20) Вакансии «Project Manager» в регионе Netherlands | LinkedIn' | url=https://www.linkedin.com/jobs/search/?f_E=3%2C4&f_I=96%2C4%2C43%2C6&f_JT=F%2CC&f_TPR=r86400&keywords=Project%20Manager&location=Netherlands&sortBy=DD&start=75
+   ✅ Поиск завершён: загружено 9 из 72 доступных (квота: 14, забанено: 63)
+   • 'Project Manager' использовал 9 из 14; возвращаю в общий пул 5.
+
+🔍 LinkedIn поиск: Product Owner
+   • Локация: Netherlands
+   • Период: последние 24 часа (r86400)
+   • Вес позиции: 2
+   • Квота на этот проход: до 9 вакансий
+   • Уровни: 3, 4
+   • Типы занятости: F, C
+   • Отрасли: IT-услуги и ИТ-консалтинг, Разработка программного обеспечения, Финансовые услуги, Технологии, информационные средства и Интернет
+   • Коды отраслей LinkedIn (f_I): 96, 4, 43, 6
+   • Фильтр отраслей будет применён через URL-параметр f_I.
+   • Пагинация LinkedIn: start=0,25,50... это смещение результатов, а не число добавленных вакансий.
+   📄 Page 1 (start=0)
+      ✗ [Head of Product with verification @ Executive Integrity | B Corp™] забанено — фраза: "HBO"
+      ✗ [Product Owner with verification @ a.s.r. verzekeringen] забанено — фраза: "bieden"
+      ✗ [Group Product Manager Data Platform with verification @ bol] забанено — фраза: "HBO"
+      ✗ [Microsoft 365 Product Owner @ INTERSTELLAR] забанено — фраза: "bieden"
+      ✓ [1] Remote Group Product Manager - Integrations (m/f/d) @ RoomPriceGenie
+      ✗ [Product owner | Internationaal vastgoed with verification @ Elevation Group] забанено — фраза: "Wie ben jij"
+   • Скролл завершён (контейнер: ancestor-of:.job-card-container)
+   • LinkedIn вернул карточек на странице: 9 (selector: .job-card-container)
+   • LinkedIn всего по запросу: 6 вакансий
+   • Итого по странице: добавлено 1, пропущено дубликатов 3, забанено 5
+   📄 Page 2 (start=25)
+   ⚠ Карточки вакансий не найдены. Состояние: по текущим фильтрам LinkedIn не показывает вакансии | title='(20) Вакансии «Product Owner» в регионе Netherlands | LinkedIn' | url=https://www.linkedin.com/jobs/search/?f_E=3%2C4&f_I=96%2C4%2C43%2C6&f_JT=F%2CC&f_TPR=r86400&keywords=Product%20Owner&location=Netherlands&sortBy=DD&start=25
+   ✅ Поиск завершён: загружено 1 из 6 доступных (квота: 9, забанено: 5)
+   • 'Product Owner' использовал 1 из 9; возвращаю в общий пул 8.
+
+🔍 LinkedIn поиск: Business Analyst
+   • Локация: Netherlands
+   • Период: последние 24 часа (r86400)
+   • Вес позиции: 1
+   • Квота на этот проход: до 5 вакансий
+   • Уровни: 3, 4
+   • Типы занятости: F, C
+   • Отрасли: IT-услуги и ИТ-консалтинг, Разработка программного обеспечения, Финансовые услуги, Технологии, информационные средства и Интернет
+   • Коды отраслей LinkedIn (f_I): 96, 4, 43, 6
+   • Фильтр отраслей будет применён через URL-параметр f_I.
+   • Пагинация LinkedIn: start=0,25,50... это смещение результатов, а не число добавленных вакансий.
+   📄 Page 1 (start=0)
+      ✓ [1] Business Analyst @ Smartedge Solutions
+      ✓ [2] Business Analyst @ Smartedge Solutions
+      ✗ [Business Analyst @ Forvis Mazars in the Netherlands] забанено — фраза: "bieden"
+      ✗ [Business Analist Digital Decade @ All About Work] забанено — фраза: "bieden"
+      ✓ [3] Lead Business Analyst @ CoinsPaid
+      ✗ [Lead Business Analist - NL with verification @ Capgemini] забанено — фраза: "werkt"
+      ✗ [Senior Business Analist with verification @ a.s.r. verzekeringen] забанено — фраза: "bieden"
+   • Скролл завершён (контейнер: ancestor-of:.job-card-container)
+   • LinkedIn вернул карточек на странице: 9 (selector: .job-card-container)
+   • LinkedIn всего по запросу: 7 вакансий
+   • Итого по странице: добавлено 3, пропущено дубликатов 2, забанено 4
+   📄 Page 2 (start=25)
+   ⚠ Карточки вакансий не найдены. Состояние: по текущим фильтрам LinkedIn не показывает вакансии | title='(20) Вакансии «Business Analyst» в регионе Netherlands | LinkedIn' | url=https://www.linkedin.com/jobs/search/?f_E=3%2C4&f_I=96%2C4%2C43%2C6&f_JT=F%2CC&f_TPR=r86400&keywords=Business%20Analyst&location=Netherlands&sortBy=DD&start=25
+   ✅ Поиск завершён: загружено 3 из 7 доступных (квота: 5, забанено: 4)
+   • 'Business Analyst' использовал 3 из 5; возвращаю в общий пул 2.
+
+🔍 LinkedIn поиск: AI specialist
+   • Локация: Netherlands
+   • Период: последние 24 часа (r86400)
+   • Вес позиции: 6
+   • Квота на этот проход: до 28 вакансий
+   • Уровни: 3, 4, 2
+   • Типы занятости: F, C
+   • Отрасли: IT-услуги и ИТ-консалтинг, Разработка программного обеспечения, Финансовые услуги, Технологии, информационные средства и Интернет
+   • Коды отраслей LinkedIn (f_I): 96, 4, 43, 6
+   • Фильтр отраслей будет применён через URL-параметр f_I.
+   • Пагинация LinkedIn: start=0,25,50... это смещение результатов, а не число добавленных вакансий.
+   📄 Page 1 (start=0)
+      ✓ [1] Servicemonteur Mechatronica - ProfMatch @ Jobster
+      ✗ [Servicetechnicus Wonen Installatietechniek @ Croonwolter&dros] забанено — фраза: "bieden"
+      ✓ [2] Associate Project Lead (Graduate) with verification @ Phenom
+      ✓ [3] Personalized Internet Ads Assessor with Dutch @ Workwide
+      ✓ [4] Account executive - Oil & Gas - EMEA @ Helin
+      ✗ [Solution Architect (Document & Content Enablement) with verification @ CZ] забанено — фраза: "bieden"
+      ✗ [Support Medewerker @ Previder] забанено — фраза: "bieden"
+      ✗ [Senior Promotie Specialist Mobile, Sound & Vision with verification @ bol] забанено — фраза: "Wat zoeken"
+      ✗ [Lead Advertising & Data Specialist with verification @ Social Brothers] забанено — фраза: "bieden"
+      ✗ [Junior AI Specialist with verification @ Van Oers] забанено — фраза: "bieden"
+      ✓ [5] Product Manager - Uplift with verification @ Adyen
+      ✗ [ISO - Zorg en IT - €6000-€7500 with verification @ RAM Infotechnology] забанено — фраза: "bieden"
+      ✗ [Freelance Adviseur Cybersecurity @ DiscoverIT Recruitment] забанено — фраза: "HBO"
+      ✓ [6] Beauty Advisor - Dutch (Remote) 9 Months Contract @ TP
+      ✗ [AI Business Consultant @ Blis Digital] забанено — фраза: "Wie ben jij"
+      ✗ [Process Engineer Camunda @ You-Get - Your Hyperautomation Expert] забанено — фраза: "bieden"
+      ✓ [7] Senior Product Manager @ AirHub
+      ✓ [8] Business Applications Lead Salesforce Service with verification @ Canon EMEA
+      ✓ [9] CRM Specialist (Retention, Klaviyo, Email) @ Polaris Growth
+      ✓ [10] Financial Crime Manager @ Versified
+      ✓ [11] ML Engineer - AI Governance with verification @ eBay
+      ✓ [12] Senior Sales Engineer - Data & AI Security with verification @ Veeam Software
+      ✓ [13] UX Writer with verification @ TicketSwap
+      ✗ [Junior Data Analist @ ErasmusTalent] забанено — фраза: "werkt"
+   • Скролл завершён (контейнер: ancestor-of:.job-card-container)
+   • LinkedIn вернул карточек на странице: 25 (selector: .job-card-container)
+   • LinkedIn всего по запросу: 303 вакансий
+   • Итого по странице: добавлено 13, пропущено дубликатов 1, забанено 11
+   📄 Page 2 (start=25)
+      ✗ [Servicemonteur Rotating Equipement - ProfMatch @ Jobster] забанено — фраза: "werkt"
+      ✗ [Lead CRM with verification @ Social Brothers] забанено — фраза: "bieden"
+      ✗ [Data Analist Customer & Partner Service with verification @ bol] забанено — фраза: "werkt"
+      ✓ [14] Senior Identity Governance Analyst with verification @ Adyen
+      ✓ [15] Sales Specialist - Data & AI Security with verification @ Veeam Software
+      ✗ [Cloud Engineer @ Lannet] забанено — фраза: "Wie ben jij"
+      ✗ [Digital Marketeer @ Coffee IT - Ontwikkelaar van Mobiele en Web-apps (Part of The Digital Club)] забанено — фраза: "Wie ben jij"
+      ✗ [Service delivery manager with verification @ Autoriteit Financiële Markten] забанено — фраза: "bieden"
+      ✓ [16] TikTok Ads Specialist @ Huzzle.com
+      ✓ [17] Audio Visual Technician with verification @ Infoplus Technologies UK Limited
+      ✗ [Security Engineer with verification @ Watchmen] забанено — фраза: "Vereisten"
+      ✗ [Customer Support Expert @ Visionplanner] забанено — фраза: "bieden"
+      ✓ [18] AI Product Manager @ Air Apps
+      ✓ [19] Information Technology Procurement @ Trust In SODA
+      ✓ [20] Information Technology Support Specialist with verification @ Piper Maddox
+      ✗ [Junior RPA Specialist with verification @ Van Oers] забанено — фраза: "bieden"
+      ✓ [21] Business Development Manager Education @ TP-Link Benelux
+      ✗ [Technical Consultant Business Central @ Fellowmind] забанено — фраза: "Wie ben jij"
+      ✗ [Marketing Specialist @ P&P Talent Group] забанено — фраза: "werkt"
+      ✓ [22] Senior AI Engineer (Gen AI) with verification @ Global KPO
+      ✗ [1e Autotechnicus @ Booston.io] забанено — фраза: "bieden"
+      ✓ [23] Implementation Consultant - EMEA with verification @ Ashby
+      ✗ [Product Owner with verification @ a.s.r. verzekeringen] забанено — фраза: "bieden"
+   • Скролл завершён (контейнер: ancestor-of:.job-card-container)
+   • LinkedIn вернул карточек на странице: 25 (selector: .job-card-container)
+   • Итого по странице: добавлено 10, пропущено дубликатов 2, забанено 13
+   📄 Page 3 (start=50)
+      ✗ [PLM Consultant @ 9altitudes Nederland] забанено — фраза: "bieden"
+      ✗ [1e medewerker Nautisch Lifting (477878) - Jobbird.com @ Jobster] забанено — фраза: "bieden"
+      ✓ [24] Scrum Master(EN) with verification @ Van Lanschot Kempen
+      ✓ [25] Sr. Technical Solutions Engineer, Databases with verification @ Databricks
+      ✓ [26] Product Marketing Manager (WebStorm) with verification @ JetBrains
+      ✓ [27] Senior Education Customer Success Engineer with verification @ MathWorks
+      ✓ [28] Power Platform Lead @ Trinamics
+   • Скролл завершён (контейнер: ancestor-of:.job-card-container)
+   • LinkedIn вернул карточек на странице: 7 (selector: .job-card-container)
+   • Итого по странице: добавлено 5, пропущено дубликатов 0, забанено 2
+   ✅ Поиск завершён: загружено 28 из 303 доступных (квота: 28, забанено: 26)
+
+🔍 LinkedIn поиск: AI Automation
+   • Локация: Netherlands
+   • Период: период LinkedIn (r86401) (r86401)
+   • Вес позиции: 1
+   • Квота на этот проход: до 4 вакансий
+   • Уровни: 3, 2
+   • Типы занятости: F, C
+   • Отрасли: IT-услуги и ИТ-консалтинг, Разработка программного обеспечения, Финансовые услуги, Технологии, информационные средства и Интернет
+   • Коды отраслей LinkedIn (f_I): 96, 4, 43, 6
+   • Фильтр отраслей будет применён через URL-параметр f_I.
+   • Пагинация LinkedIn: start=0,25,50... это смещение результатов, а не число добавленных вакансий.
+   📄 Page 1 (start=0)
+      ✗ [PCS7 Engineer - Process Automation (Maastricht) with verification @ ICT Group] забанено — фраза: "bieden"
+      ✗ [Infra & Network Automation Consultant (Zero Trust Backbone) @ One Zero IT] забанено — фраза: "bieden"
+      ✗ [Test Automation Professional IM IT with verification @ PGGM] забанено — фраза: "bieden"
+   • Скролл завершён (контейнер: ancestor-of:.job-card-container)
+   • LinkedIn вернул карточек на странице: 6 (selector: .job-card-container)
+   • LinkedIn всего по запросу: 3 вакансий
+   • Итого по странице: добавлено 0, пропущено дубликатов 3, забанено 3
+   ℹ На странице нет новых вакансий (пустых страниц подряд: 1)
+   📄 Page 2 (start=25)
+   ⚠ Карточки вакансий не найдены. Состояние: по текущим фильтрам LinkedIn не показывает вакансии | title='(20) Вакансии «AI Automation» в регионе Netherlands | LinkedIn' | url=https://www.linkedin.com/jobs/search/?f_E=3%2C2&f_I=96%2C4%2C43%2C6&f_JT=F%2CC&f_TPR=r86401&keywords=AI%20Automation&location=Netherlands&sortBy=DD&start=25
+   ✅ Поиск завершён: загружено 0 из 3 доступных (квота: 4, забанено: 3)
+   • 'AI Automation' использовал 0 из 4; возвращаю в общий пул 4.
+
+🔄 Запускаю добор из общего пула: осталось 19 вакансий для перераспределения.
+   • Добор для 'AI specialist' (вес=6): ещё до 19 вакансий.
+   • Добор начнётся с start=75, чтобы не повторять уже просмотренные страницы.
+
+🔍 LinkedIn поиск: AI specialist
+   • Локация: Netherlands
+   • Период: последние 24 часа (r86400)
+   • Вес позиции: 6
+   • Квота на этот проход: до 19 вакансий
+   • Уровни: 3, 4, 2
+   • Типы занятости: F, C
+   • Отрасли: IT-услуги и ИТ-консалтинг, Разработка программного обеспечения, Финансовые услуги, Технологии, информационные средства и Интернет
+   • Коды отраслей LinkedIn (f_I): 96, 4, 43, 6
+   • Фильтр отраслей будет применён через URL-параметр f_I.
+   • Пагинация LinkedIn: start=0,25,50... это смещение результатов, а не число добавленных вакансий.
+   📄 Page 4 (start=75)
+      ✗ [VeVa Onderofficier Monteur Schiet Systemen - Jobbird.com @ Jobster] забанено — фраза: "Functie"
+      ✗ [DevOps Engineer - Eviden @ Eviden] забанено — фраза: "bieden"
+      ✗ [Korporaal Automonteur - Jobbird.com @ Jobster] забанено — фраза: "Functie"
+      ✗ [1e Cyber Security Specialist - Jobbird.com @ Jobster] забанено — фраза: "Functie-eisen"
+      ✗ [Reservist Onderofficier Genie Bouwkunde - Jobbird.com @ Jobster] забанено — фраза: "werkt"
+      ✗ [VeVa Soldaat Genie Gevost (Combat Support Engineer - Gevechtsondersteuner) - Jobbird.com @ Jobster] забанено — фраза: "Functie"
+      ✗ [HR Data Specialist - Jobbird.com @ Jobster] забанено — фраза: "bieden"
+      ✗ [Herintreder Luitenant Korps Commando Troepen - Jobbird.com @ Jobster] забанено — фраза: "Functie"
+      ✗ [Servicemonteur - Heijneman Medical BV @ Jobster] забанено — фраза: "bieden"
+      ✗ [Reservist Operationeel Dagboekschrijver - Jobbird.com @ Jobster] забанено — фраза: "Functie"
+      ✗ [Data modelleur Landelijk Tactisch Commando (LTC) - Jobbird.com @ Jobster] забанено — фраза: "bieden"
+      ✗ [Herintreder Korporaal(1) Luchtdoelartillerie - Jobbird.com @ Jobster] забанено — фраза: "Functie"
+      ✗ [Senior Consultant Instroom Planning & Regie - Jobbird.com @ Jobster] забанено — фраза: "Wie ben jij"
+      ✗ [Servicemonteur Werktuigbouwkunde Installaties - ProfMatch @ Jobster] забанено — фраза: "werkt"
+      ✗ [Reservist Open Source Intelligence Analist - Jobbird.com @ Jobster] забанено — фраза: "Functie"
+      ✗ [Junior Projectleider Maritiem IT - Jobbird.com @ Jobster] забанено — фраза: "bieden"
+      ✗ [IT Specialist - Nh1816 Verzekeringen @ Jobster] забанено — фраза: "bieden"
+      ✓ [1] Teamleider Techniek Kunststofindustrie - ProfMatch @ Jobster
+      ✗ [Medewerker Technische Dienst | Dagdienst | Voedingsmiddelenindustrie - ProfMatch @ Jobster] забанено — фраза: "werkt"
+      ✗ [Onderhouds- & Herstelspecialist Dagdienst - ProfMatch @ Jobster] забанено — фраза: "bieden"
+      ✗ [Senior RF Adviseur - Jobbird.com @ Jobster] забанено — фраза: "Functie-eisen"
+      ✗ [Servicemonteur Werktuigbouwkunde - ProfMatch @ Jobster] забанено — фраза: "Functie"
+      ✓ [2] Partner & Channel Manager @ Helin
+      ✗ [Trainee @ LVS Recruitment] забанено — фраза: "bieden"
+      ✗ [Information Technology Project Engineer with verification @ Score Utica] забанено — фраза: "bieden"
+   • Скролл завершён (контейнер: ancestor-of:.job-card-container)
+   • LinkedIn вернул карточек на странице: 25 (selector: .job-card-container)
+   • Итого по странице: добавлено 2, пропущено дубликатов 0, забанено 23
+   📄 Page 5 (start=100)
+   ⚠ Навигация страницы сработала нестабильно — проверяю, открылась ли выдача фактически.
+   ⚠ Причина навигации: Page.goto: net::ERR_NAME_NOT_RESOLVED at https://www.linkedin.com/jobs/search/?keywords=AI+specialist&location=Netherlands&f_TPR=r86400&start=100&sortBy=DD&f_E=3,4,2&f_JT=F,C&f_I=96,4,43,6
+Call log:
+  - navigating to "https://www.linkedin.com/jobs/search/?keywords=AI+specialist&location=Netherlands&f_TPR=r86400&start=100&sortBy=DD&f_E=3,4,2&f_JT=F,C&f_I=96,4,43,6", waiting until "domcontentloaded"
+
+   ⚠ Карточки вакансий не найдены. Состояние: не удалось распознать состояние страницы | title='www.linkedin.com' | url=chrome-error://chromewebdata/
+   ✅ Поиск завершён: 2 вакансий (квота: 19, забанено: 23)
+   • Добор из 'AI specialist': найдено ещё 2; в пуле осталось 17.
+   • Добор для 'AI specialist' (вес=6): ещё до 17 вакансий.
+   • Добор начнётся с start=100, чтобы не повторять уже просмотренные страницы.
+
+🔍 LinkedIn поиск: AI specialist
+   • Локация: Netherlands
+   • Период: последние 24 часа (r86400)
+   • Вес позиции: 6
+   • Квота на этот проход: до 17 вакансий
+   • Уровни: 3, 4, 2
+   • Типы занятости: F, C
+   • Отрасли: IT-услуги и ИТ-консалтинг, Разработка программного обеспечения, Финансовые услуги, Технологии, информационные средства и Интернет
+   • Коды отраслей LinkedIn (f_I): 96, 4, 43, 6
+   • Фильтр отраслей будет применён через URL-параметр f_I.
+   • Пагинация LinkedIn: start=0,25,50... это смещение результатов, а не число добавленных вакансий.
+   📄 Page 5 (start=100)
+   ⚠ Навигация страницы сработала нестабильно — проверяю, открылась ли выдача фактически.
+   ⚠ Причина навигации: Page.goto: net::ERR_NAME_NOT_RESOLVED at https://www.linkedin.com/jobs/search/?keywords=AI+specialist&location=Netherlands&f_TPR=r86400&start=100&sortBy=DD&f_E=3,4,2&f_JT=F,C&f_I=96,4,43,6
+Call log:
+  - navigating to "https://www.linkedin.com/jobs/search/?keywords=AI+specialist&location=Netherlands&f_TPR=r86400&start=100&sortBy=DD&f_E=3,4,2&f_JT=F,C&f_I=96,4,43,6", waiting until "domcontentloaded"
+
+   ⚠ Карточки вакансий не найдены. Состояние: не удалось распознать состояние страницы | title='www.linkedin.com' | url=chrome-error://chromewebdata/
+   ✅ Поиск завершён: 0 вакансий (квота: 17, забанено: 0)
+   • Для 'AI specialist' дополнительных вакансий не найдено; убираю из кандидатов на добор.
+   ℹ Оставшиеся 17 вакансий в пуле не удалось добрать по доступным позициям.
+WARNING:urllib3.connectionpool:Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NameResolutionError("HTTPSConnection(host='oauth2.googleapis.com', port=443): Failed to resolve 'oauth2.googleapis.com' ([Errno 11001] getaddrinfo failed)")': /token
+WARNING:urllib3.connectionpool:Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NameResolutionError("HTTPSConnection(host='oauth2.googleapis.com', port=443): Failed to resolve 'oauth2.googleapis.com' ([Errno 11001] getaddrinfo failed)")': /token
+WARNING:urllib3.connectionpool:Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NameResolutionError("HTTPSConnection(host='oauth2.googleapis.com', port=443): Failed to resolve 'oauth2.googleapis.com' ([Errno 11001] getaddrinfo failed)")': /token
+
+✗ КРИТИЧЕСКАЯ ОШИБКА:
+  Ошибка LinkedIn Search: HTTPSConnectionPool(host='oauth2.googleapis.com', port=443): Max retries exceeded with url: /token (Caused by NameResolutionError("HTTPSConnection(host='oauth2.googleapis.com', port=443): Failed to resolve 'oauth2.googleapis.com' ([Errno 11001] getaddrinfo failed)"))
+✗ Задача завершилась с ошибкой (код 1)
+
