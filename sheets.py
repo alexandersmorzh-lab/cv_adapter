@@ -5,6 +5,7 @@ import logging
 import re
 import sys
 import os
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
@@ -718,6 +719,72 @@ def get_tracker_rows_for_analyzer(client: gspread.Client):
     return worksheet, rows_to_process, col_indices, headers
 
 
+def get_tracker_rows_for_manual_scoring(client: gspread.Client):
+    """
+    Возвращает строки Tracker для ручного скоринга:
+    - Description заполнен
+    - SummaryScoring пуст
+
+    Для совместимости с разными таблицами:
+    - Description и SummaryScoring используются как критерий отбора
+    - Остальные колонки скоринга опциональны
+    """
+    spreadsheet = client.open_by_key(config.SPREADSHEET_ID)
+    worksheet = spreadsheet.worksheet(config.SHEET_TRACKER)
+    all_values = worksheet.get_all_values()
+
+    if not all_values:
+        return worksheet, [], {}, []
+
+    headers = all_values[0]
+
+    col_desc = _find_col(headers, config.COL_DESCRIPTION)
+    col_sum = _find_col(headers, config.COL_SUMMARY_SCORING)
+
+    # Без этих колонок невозможно корректно отобрать строки под критерий задачи.
+    if col_desc is None or col_sum is None:
+        return worksheet, [], {}, headers
+
+    col_title = _find_col(headers, "Title")
+    col_base = _find_col(headers, config.COL_BASE_SCORING)
+    col_base_reason = _find_col(headers, config.COL_BASE_SCORE_REASON)
+    col_add = _find_col(headers, config.COL_ADDITIONAL_SCORING)
+    col_add_reason = _find_col(headers, config.COL_ADD_SCORE_REASON)
+    col_wrong = _find_col(headers, config.COL_WRONG_PHRASES)
+    col_selected_cv = _find_col(headers, "Selected_CV")
+    col_gap_analysis = _find_col(headers, "Gap_Analysis")
+
+    col_indices = {
+        "description": col_desc,
+        "summary_scoring": col_sum,
+        "title": col_title,
+        "base_scoring": col_base,
+        "base_score_reason": col_base_reason,
+        "additional_scoring": col_add,
+        "add_score_reason": col_add_reason,
+        "wrong_phrases": col_wrong,
+        "selected_cv": col_selected_cv,
+        "gap_analysis": col_gap_analysis,
+    }
+
+    rows_to_process = []
+    for i, row in enumerate(all_values[1:], start=2):
+        desc = _cell(row, col_desc)
+        summary = _cell(row, col_sum)
+        if desc and not summary:
+            title = _cell(row, col_title) if col_title is not None else ""
+            rows_to_process.append(
+                {
+                    "row_num": i,
+                    "description": desc,
+                    "title": title,
+                    "row_data": row,
+                }
+            )
+
+    return worksheet, rows_to_process, col_indices, headers
+
+
 def get_tracker_rows_for_adaptation(client: gspread.Client, min_summary_score: float):
     """
     Возвращает строки Tracker, которые должны пойти в адаптацию CV:
@@ -955,6 +1022,54 @@ def write_search_database_result(
     worksheet.update_cells(cells, value_input_option="USER_ENTERED")
 
 
+def write_tracker_manual_scoring_result(
+    worksheet: gspread.Worksheet,
+    row_num: int,
+    col_indices: dict,
+    base_scoring: float,
+    additional_scoring: float,
+    summary_scoring: float,
+    base_score_reason: str = "",
+    add_score_reason: str = "",
+    wrong_phrases_flag: int | None = None,
+    selected_cv: str = "",
+    gap_analysis: str = "",
+) -> None:
+    """Записывает результаты ручного скоринга в Tracker только в существующие колонки."""
+    updates: list[tuple[int, int, Any]] = []
+
+    if col_indices.get("base_scoring") is not None:
+        updates.append((row_num, col_indices["base_scoring"] + 1, _fmt_score(base_scoring)))
+
+    if col_indices.get("additional_scoring") is not None:
+        updates.append((row_num, col_indices["additional_scoring"] + 1, _fmt_score(additional_scoring)))
+
+    if col_indices.get("summary_scoring") is not None:
+        updates.append((row_num, col_indices["summary_scoring"] + 1, _fmt_score(summary_scoring)))
+
+    if col_indices.get("base_score_reason") is not None:
+        updates.append((row_num, col_indices["base_score_reason"] + 1, (base_score_reason or "").strip()))
+
+    if col_indices.get("add_score_reason") is not None:
+        updates.append((row_num, col_indices["add_score_reason"] + 1, (add_score_reason or "").strip()))
+
+    if wrong_phrases_flag is not None and col_indices.get("wrong_phrases") is not None:
+        updates.append((row_num, col_indices["wrong_phrases"] + 1, wrong_phrases_flag))
+
+    if col_indices.get("selected_cv") is not None and selected_cv:
+        updates.append((row_num, col_indices["selected_cv"] + 1, selected_cv.strip()))
+
+    if col_indices.get("gap_analysis") is not None and gap_analysis:
+        updates.append((row_num, col_indices["gap_analysis"] + 1, gap_analysis.strip()))
+
+    if not updates:
+        _log.debug("Tracker manual scoring: нет доступных колонок для записи (строка %s)", row_num)
+        return
+
+    cells = [gspread.Cell(r, c, v) for (r, c, v) in updates]
+    worksheet.update_cells(cells, value_input_option="USER_ENTERED")
+
+
 def get_next_tracker_id(client: gspread.Client) -> int:
     """Получает следующий доступный ID для листа Tracker."""
     spreadsheet = client.open_by_key(config.SPREADSHEET_ID)
@@ -1008,6 +1123,8 @@ def add_row_to_tracker(
     new_row = [""] * len(headers)
     
     # Маппинг требуемых колонок
+    transfer_dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
     col_mapping = {
         "ID": row_id,
         config.COL_DESCRIPTION: row_data.get("description", ""),
@@ -1017,6 +1134,9 @@ def add_row_to_tracker(
         config.COL_ADD_SCORE_REASON: row_data.get("add_score_reason", ""),
         config.COL_SUMMARY_SCORING: _fmt_score(row_data.get("summary_scoring", 0.0)),
         config.COL_TRACKER_ID: row_id,
+        "DateTime": row_data.get("datetime", transfer_dt),
+        "Selected_CV": row_data.get("selected_cv", ""),
+        "Gap_Analysis": row_data.get("gap_analysis", ""),
     }
     
     # Заполнить стандартные поля, если есть
@@ -1111,6 +1231,7 @@ def get_master_cv_metadata(client: gspread.Client) -> dict:
     spreadsheet = client.open_by_key(config.SPREADSHEET_ID)
     worksheet = spreadsheet.worksheet(config.SHEET_MASTER_CV)
     all_values = worksheet.get_all_values()
+    col_b_links = _get_master_cv_col_b_links()
     
     result = {
         "master_cv_text": "",
@@ -1129,7 +1250,7 @@ def get_master_cv_metadata(client: gspread.Client) -> dict:
     preferred_label = (config.MASTER_CV_SYSTEM_PROMPT_LABEL or "System_prompt").strip().lower()
     
     # Предполагаем col A - название раздела, col B - значение
-    for row in all_values:
+    for row_num, row in enumerate(all_values, start=1):
         if len(row) < 2:
             continue
         label = row[0].strip().lower()
@@ -1138,16 +1259,19 @@ def get_master_cv_metadata(client: gspread.Client) -> dict:
         if label == "master cv":
             result["master_cv_text"] = value
         elif label == "cv doc template":
-            # Может быть либо полная ссылка, либо просто ID
-            if "/d/" in value:
-                result["template_doc_id"] = value.split("/d/")[1].split("/")[0]
-            elif _looks_like_doc_id(value):
-                result["template_doc_id"] = value
+            # Для rich links (smart chips) в колонке B берём ссылку из cellData,
+            # иначе используем plain text из get_all_values().
+            template_ref = (col_b_links.get(row_num) or value).strip()
+            doc_id = _extract_google_doc_id(template_ref)
+            if doc_id:
+                result["template_doc_id"] = doc_id
             else:
                 _log.warning(
-                    "Master CV: значение 'CV Doc Template' = %r не похоже на Google Doc URL или ID. "
+                    "Master CV: значение 'CV Doc Template' = %r (row=%s, raw=%r) не похоже на Google Doc URL или ID. "
                     "Укажите полную ссылку вида https://docs.google.com/document/d/ВАШ_ID/edit "
                     "или просто ID документа (длинная строка из букв и цифр).",
+                    template_ref,
+                    row_num,
                     value,
                 )
                 result["template_doc_id"] = ""
@@ -1180,6 +1304,9 @@ def get_master_cv_metadata(client: gspread.Client) -> dict:
         # Fallback: берём первый найденный System_prompt_* в порядке строк листа.
         result["system_prompt_label"] = prompt_rows[0][0]
         result["system_prompt"] = prompt_rows[0][1]
+
+    if result["template_doc_id"]:
+        _log.info("Master CV: используется CV Doc Template id=%s", result["template_doc_id"])
     
     return result
 

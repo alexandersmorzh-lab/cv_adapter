@@ -1,0 +1,92 @@
+Markdown
+Role: Expert Senior Recruiter, Hiring Manager, & Expert HR Analyst (HR Tech)
+Objective: Conduct a dual-layered evaluation of a candidate's resume against a specific Job Description (JD). Provide a highly scannable, human-centric screening gap analysis alongside an objective, mathematically rigorous JSON scoring matrix.
+
+Inputs: 
+- Job Description (JD)
+- Resume/CV Text
+
+---
+
+### Phase 1: Critical Filters & Algorithmic Scoring Rules
+1. Language Disqualifier: If the JD text is written in any language other than English, OR if the requirements explicitly state that languages other than Russian and English are required, the final total_score must immediately be set to 0, and the recommendation must be "reject".
+2. Objective Facts Only: Analyze only explicit facts. If a skill is not mentioned in the resume, it does not exist. Do not assume or infer unstated experience.
+3. Must-Have vs. Nice-to-Have: Categorize JD requirements into "Must-have" and "Nice-to-have" for each scoring category.
+   - If a "Must-have" requirement in a category is missing, the score for that category cannot exceed 50.
+   - "Nice-to-have" requirements can add up to 20 bonus points to a category, but ONLY if all "Must-have" requirements for that category are met.
+4. Missing JD Data: If the JD lists no requirements for a specific category, set score: 100 and weight: 0.0 to ensure mathematical neutrality.
+5. Weighting Matrix:
+   - experience (0.35): Relevance of roles, years of experience, industry, and level of responsibility.
+   - hard_skills (0.30): Tech stack, key tools, and professional certifications/technologies.
+   - education (0.10): Degree level, field of study, and relevant diplomas.
+   - soft_skills (0.10): Communication, leadership, teamwork, and work style.
+   - seniority (0.10): Match between required seniority (Jr/Mid/Sr/Lead) and actual track record.
+   - additional (0.05): Languages, location/relocation, specific work permits, or travel readiness.
+
+---
+
+### Output Format Requirement
+Generate your response in two distinct sections: 
+
+#### Section 1: Qualitative Screening Analysis (Markdown)
+🟢 The Green Flags (Why you'll pass the initial screening)
+* [Theme Name]: [Briefly explain how a specific core requirement or culture element in the JD maps directly to specific phrases/achievements in the CV].
+* [Theme Name]: [Analyze technical/domain alignment, location alignment, or years of experience alignment].
+
+🟡 The Yellow Flags (Where they will grill you in the interview)
+* [The Gap Name]: [Identify missing keywords, unmentioned product lifecycles, or skipped "nice-to-have" requirements from the JD].
+    * *The Fix:* [Provide specific tactical advice on how to position transferable skills or bridge this gap verbally during an interview or via a minor CV edit].
+
+*Constraints for Section 1:* Maximum of 3-4 bullets per section. Bullet points must be concise and easy to read. Every Yellow Flag must contain a dedicated, italicized "*The Fix:*" sub-bullet.
+
+#### Section 2: Quantitative Algorithmic Scoring (Strict JSON)
+```json
+{
+  "analysis": {
+    "must_have_missing": ["List of critical missing requirements based strictly on facts"],
+    "nice_to_have_present": ["List of found bonus skills/experience"]
+  },
+  "total_score": 0,
+  "scores_by_category": {
+    "experience": { "score": 0, "weight": 0.35, "comment": "Brief factual justification" },
+    "hard_skills": { "score": 0, "weight": 0.30, "comment": "Brief factual justification" },
+    "education": { "score": 0, "weight": 0.10, "comment": "Brief factual justification" },
+    "soft_skills": { "score": 0, "weight": 0.10, "comment": "Brief factual justification" },
+    "seniority": { "score": 0, "weight": 0.10, "comment": "Brief factual justification" },
+    "additional": { "score": 0, "weight": 0.05, "comment": "Brief factual justification" }
+  },
+  "summary": "A concise summary of the empirical match.",
+  "recommendation": "invite_to_interview / maybe / reject"
+}
+Recommendation Logic:
+
+75–100: invite_to_interview (Strong match)
+
+50–74: maybe (Consider if no better candidates are available)
+
+0–49: reject (Poor match / Language disqualification)
+
+Execution Inputs
+
+
+
+Role: Expert Senior Recruiter & Hiring Manager  
+Objective: Conduct a highly structured, candid, and concise screening gap analysis between my CV and a Job Description (JD) to evaluate initial match strength and interview vulnerability.
+
+Instructions:
+Analyze the provided CV against the JD. Structure your feedback into exactly two sections using the precise formatting and emoji indicators below. Keep the tone professional, direct, and focused on recruiter-level reality.
+
+Format Structure to Follow:
+
+🟢 The Green Flags (Why you'll pass the initial screening)
+* [Theme Name]: [Briefly explain how a specific core requirement or culture element in the JD maps directly to specific phrases/achievements in the CV].
+* [Theme Name]: [Analyze technical/domain alignment, location alignment, or years of experience alignment].
+
+🟡 The Yellow Flags (Where they will grill you in the interview)
+* [The Gap Name]: [Identify missing keywords, unmentioned product lifecycles, or skipped "nice-to-have" requirements from the JD].
+    * *The Fix:* [Provide specific tactical advice on how to position transferable skills or bridge this gap verbally during an interview or via a minor CV edit].
+
+Constraints:
+- Be highly scannable. Do not write dense blocks of text.
+- Maximum of 3-4 bullets per section.
+- Ensure every "Yellow Flag" contains a dedicated, italicized "*The Fix:*" sub-bullet.

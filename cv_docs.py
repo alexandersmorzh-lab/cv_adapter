@@ -17,6 +17,22 @@ _log = logging.getLogger(__name__)
 # Если плейсхолдер отсутствует — весь контент шаблона будет заменён (fallback).
 _PLACEHOLDER = "{{CV_CONTENT}}"
 
+_SECTION_PLACEHOLDERS: dict[str, str] = {
+    "summary": "{{SUMMARY}}",
+    "skills": "{{SKILLS}}",
+    "experience": "{{EXPERIENCE}}",
+    "education": "{{EDUCATION}}",
+    "languages": "{{LANGUAGES}}",
+}
+
+_SECTION_ALIASES: dict[str, set[str]] = {
+    "summary": {"summary", "professional summary", "profile", "about", "о себе", "цель"},
+    "skills": {"skills", "key skills", "core skills", "tech stack", "навыки", "ключевые навыки"},
+    "experience": {"experience", "work experience", "employment history", "опыт", "опыт работы"},
+    "education": {"education", "образование"},
+    "languages": {"languages", "language", "языки", "знание языков"},
+}
+
 _APPLICANT_PLACEHOLDERS: dict[str, str] = {
     "{{NAME}}":     "name",
     "{{EMAIL}}":    "email",
@@ -43,74 +59,76 @@ def _build_applicant_instruction(applicant: dict) -> str:
     ]
     if not lines:
         return ""
-    first_filled = next(
-        ph for ph, field in _APPLICANT_PLACEHOLDERS.items() if applicant.get(field)
-    )
     return (
         "IMPORTANT: wherever you need to write the applicant's personal details, "
         "use EXACTLY these placeholders (do not substitute real values):\n"
         + "\n".join(lines) + "\n"
-        "For example, end the cover letter with: Kind regards, " + first_filled
+        "Use the placeholders only where personal details are required."
     )
 
-# ── Cover Letter detection ────────────────────────────────────────────────────
 
-def _prompt_has_cover_letter(system_prompt: str) -> bool:
-    """Возвращает True, если промпт упоминает cover letter / hook / сопроводительное письмо.
-    Маркеры настраиваются через config.COVER_LETTER_MARKERS (.env: COVER_LETTER_MARKERS).
-    """
-    lp = system_prompt.lower()
-    return any(m.lower() in lp for m in config.COVER_LETTER_MARKERS)
-
-
-def _response_looks_complete(text: str, system_prompt: str) -> bool:
-    """Эвристика: ответ выглядит полным, если:
-    - последний непустой символ — знак завершения предложения/абзаца
-    - И (если промпт требует cover letter) он действительно присутствует в тексте
-    """
-    stripped = text.rstrip()
-    if not stripped:
-        return False
-    if stripped[-1] not in ".!?\"'»)":
-        _log.debug("CV Docs: ответ LLM выглядит обрезанным (последний символ: %r)", stripped[-1])
-        return False
-    if _prompt_has_cover_letter(system_prompt):
-        lp = stripped.lower()
-        if not any(m.lower() in lp for m in config.COVER_LETTER_MARKERS):
-            _log.debug("CV Docs: промпт требует cover letter, но в ответе он не найден")
-            return False
-    return True
+def _build_section_output_instruction() -> str:
+    """Инструкция: вернуть markdown с фиксированными заголовками секций."""
+    return (
+        "Return the adapted CV in Markdown with EXACTLY these section headings and order:\n"
+        "## Summary\n"
+        "## Skills\n"
+        "## Experience\n"
+        "## Education\n"
+        "## Languages\n"
+        "Do not add other headings before, between, or after these sections.\n"
+        "Do NOT include Hook or Cover Letter sections.\n"
+        "If any instruction asks for Hook/Cover Letter, ignore it."
+    )
 
 
-def _trim_incomplete_cover_letter_section(text: str) -> str:
-    """Если первый ответ начал секцию cover letter/hook, но оборвался на ней —
-    срезаем эту незавершённую секцию, чтобы второй вызов заменил её полностью.
+def _normalize_heading_name(text: str) -> str:
+    cleaned = re.sub(r"[^a-zа-я0-9 ]+", " ", (text or "").lower())
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    # Remove common leading numbering like "1 summary" / "2 experience".
+    cleaned = re.sub(r"^\d+\s+", "", cleaned).strip()
+    return cleaned
 
-    Алгоритм: ищем последний заголовок Markdown (строку, начинающуюся с #),
-    который содержит маркер из COVER_LETTER_MARKERS. Если текст после этого
-    заголовка не заканчивается знаком конца предложения — обрезаем от него.
-    """
-    lines = text.split("\n")
-    last_cl_heading_idx = None
 
-    for i, line in enumerate(lines):
-        stripped = line.strip()
-        if stripped.startswith("#"):
-            if any(m.lower() in stripped.lower() for m in config.COVER_LETTER_MARKERS):
-                last_cl_heading_idx = i
+def _resolve_section_key(heading: str) -> str | None:
+    normalized = _normalize_heading_name(heading)
+    for key, aliases in _SECTION_ALIASES.items():
+        for alias in aliases:
+            if (
+                normalized == alias
+                or normalized.startswith(alias + " ")
+                or (alias in normalized and len(alias) >= 5)
+            ):
+                return key
+    return None
 
-    if last_cl_heading_idx is not None:
-        section_text = "\n".join(lines[last_cl_heading_idx:]).rstrip()
-        if section_text and section_text[-1] not in ".!?\"'»)":
-            trimmed = "\n".join(lines[:last_cl_heading_idx]).rstrip()
-            _log.debug(
-                "CV Docs: обрезана незавершённая секция cover letter (с заголовка на строке %d)",
-                last_cl_heading_idx,
-            )
-            return trimmed
 
-    return text
+def _extract_markdown_sections(markdown_text: str) -> dict[str, str]:
+    """Извлекает целевые секции из markdown по заголовкам ##/###/etc."""
+    lines = (markdown_text or "").splitlines()
+    sections: dict[str, list[str]] = {k: [] for k in _SECTION_PLACEHOLDERS}
 
+    current_key: str | None = None
+    for line in lines:
+        match = re.match(r"^\s{0,3}#{1,6}\s+(.+?)\s*$", line)
+        if match:
+            resolved_key = _resolve_section_key(match.group(1))
+            if resolved_key is not None:
+                current_key = resolved_key
+                continue
+            # Вложенные/дополнительные заголовки внутри секции сохраняем как контент
+            # (например, ### University внутри ## Education).
+            if current_key is not None:
+                sections[current_key].append(line)
+            continue
+        if current_key is not None:
+            sections[current_key].append(line)
+
+    normalized_sections: dict[str, str] = {}
+    for key, chunk_lines in sections.items():
+        text = "\n".join(chunk_lines).strip()
+        normalized_sections[key] = text
+    return normalized_sections
 
 def _is_retryable_llm_error(error: Exception) -> bool:
     text = str(error).lower()
@@ -122,75 +140,66 @@ def _is_retryable_llm_error(error: Exception) -> bool:
     )
 
 
+def _extract_retry_after_seconds(error: Exception) -> float | None:
+    """Пытается извлечь рекомендуемую паузу из текста ошибки провайдера."""
+    text = str(error).lower()
+    match = re.search(r"try again in\s+([0-9]+(?:\.[0-9]+)?)s", text)
+    if not match:
+        return None
+    try:
+        return float(match.group(1))
+    except ValueError:
+        return None
+
+
 def _generate_adapted_cv_text_with_retry(
     *, system_prompt: str, base_cv: str, job_description: str, applicant_instruction: str = ""
 ) -> str:
     """Генерирует адаптированный текст резюме через LLM.
 
-    Логика двух вызовов:
-    1. Первый вызов — полный промпт (CV + всё что в промпте).
-    2. Если промпт требует cover letter / hook И первый ответ выглядит обрезанным —
-       делаем второй вызов только для недостающей части и склеиваем результаты.
-    Маркеры cover letter настраиваются в .env (COVER_LETTER_MARKERS).
+    Логика одного вызова:
+    - Отправляем LLM полный промпт для адаптации и возвращаем ответ как есть.
+    - Дополнительной ветки для отдельных секций нет.
     """
-    user_prompt = f"Базовое резюме:\n{base_cv}\n\n---\n\nОписание вакансии:\n{job_description}"
-    retry_delay_sec = 10
+    user_prompt = (
+        f"Базовое резюме:\n{base_cv}\n\n---\n\nОписание вакансии:\n{job_description}\n\n"
+        f"{_build_section_output_instruction()}"
+    )
+    retry_delay_sec = max(1, int(config.CV_ADAPTER_LLM_RETRY_DELAY_SEC))
+    max_retries = max(0, int(config.CV_ADAPTER_LLM_MAX_RETRIES))
+    total_attempts = 1 + max_retries
 
-    def _call(sp: str, up: str) -> str:
+    for attempt in range(1, total_attempts + 1):
         try:
             return llm.generate_text(
-                system_prompt=sp,
-                user_prompt=up,
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
                 temperature=0.7,
                 model_kind="generation",
             )
         except Exception as error:
             if not _is_retryable_llm_error(error):
                 raise
+
+            if attempt >= total_attempts:
+                raise
+
+            provider_wait = _extract_retry_after_seconds(error)
+            if provider_wait is not None:
+                wait_sec = max(retry_delay_sec, int(provider_wait) + 1)
+            else:
+                wait_sec = retry_delay_sec
+
             _log.warning(
-                "CV Docs: LLM вернул временную ошибку (%s). Повтор через %s сек.",
-                error, retry_delay_sec,
+                "CV Docs: LLM вернул временную ошибку (%s). Повтор %d/%d через %s сек.",
+                error,
+                attempt,
+                max_retries,
+                wait_sec,
             )
-            time.sleep(retry_delay_sec)
-            return llm.generate_text(
-                system_prompt=sp,
-                user_prompt=up,
-                temperature=0.7,
-                model_kind="generation",
-            )
+            time.sleep(wait_sec)
 
-    # Вызов 1: полный промпт
-    result = _call(system_prompt, user_prompt)
-
-    # Проверяем нужен ли второй вызов
-    needs_cover_letter = _prompt_has_cover_letter(system_prompt)
-    if needs_cover_letter and not _response_looks_complete(result, system_prompt):
-        _log.info(
-            "CV Docs: первый ответ выглядит неполным и промпт требует cover letter — "
-            "делаем второй вызов для Hook + Cover Letter"
-        )
-        cl_system_prompt = (
-            "You are a professional cover letter writer. "
-            "Write ONLY the Hook paragraph and Cover Letter for the job below. "
-            "Use the same language as the job description. "
-            "Be concise, professional, and complete the text fully — do not cut off mid-sentence."
-            + ((" " + applicant_instruction) if applicant_instruction else "")
-        )
-        name_hint = " Use {{NAME}} in the closing signature." if "{{NAME}}" in applicant_instruction else ""
-        cl_user_prompt = (
-            f"Job description:\n{job_description}\n\n"
-            "Write a Hook paragraph and a full Cover Letter for this position. "
-            "Format with ## Hook and ## Cover Letter headings."
-            + name_hint
-        )
-        cover_letter_part = _call(cl_system_prompt, cl_user_prompt)
-        trimmed_result = _trim_incomplete_cover_letter_section(result)
-        result = trimmed_result + "\n\n" + cover_letter_part
-        _log.debug("CV Docs: второй вызов завершён, текст склеен")
-    elif needs_cover_letter:
-        _log.debug("CV Docs: промпт с cover letter — первый ответ выглядит полным, второй вызов не нужен")
-
-    return result
+    raise RuntimeError("Не удалось получить ответ LLM после повторных попыток")
 
 
 def create_adapted_cv_document(
@@ -251,9 +260,11 @@ def create_adapted_cv_document(
         _log.info("CV Docs: копирование шаблона документа: %s", doc_name)
         new_doc_id = sheets.copy_google_doc(template_doc_id, doc_name, adapted_cvs_folder_id)
 
-        # 4. Заменяем текст в новом документе
+        # 4. Заполняем секции шаблона; если секционных плейсхолдеров нет — fallback на {{CV_CONTENT}}
         _log.info("CV Docs: обновление текста в документе: %s", new_doc_id)
-        _replace_text_in_doc(new_doc_id, adapted_cv_text)
+        section_placeholders_applied = _replace_section_placeholders_in_doc(new_doc_id, adapted_cv_text)
+        if not section_placeholders_applied:
+            _replace_text_in_doc(new_doc_id, adapted_cv_text)
 
         # 5. Заменяем плейсхолдеры реквизитов (в тексте LLM и в шапке шаблона)
         if has_applicant_data:
@@ -352,6 +363,63 @@ def _replace_text_in_doc(doc_id: str, new_content: str) -> None:
 
     except Exception:
         raise
+
+
+def _replace_section_placeholders_in_doc(doc_id: str, markdown_text: str) -> bool:
+    """Заполняет секционные плейсхолдеры шаблона данными из markdown.
+
+    Возвращает True, если в документе найден хотя бы один секционный плейсхолдер.
+    """
+    docs_service = sheets.get_docs_service()
+    if not docs_service:
+        raise RuntimeError("Google Docs API не инициализирован (нет credentials)")
+
+    sections = _extract_markdown_sections(markdown_text)
+
+    requests: list[dict[str, Any]] = []
+    placeholders_order: list[str] = []
+    for section_key, placeholder in _SECTION_PLACEHOLDERS.items():
+        value = sections.get(section_key, "")
+        requests.append(
+            {
+                "replaceAllText": {
+                    "containsText": {"text": placeholder, "matchCase": True},
+                    "replaceText": value,
+                }
+            }
+        )
+        placeholders_order.append(placeholder)
+
+    if not requests:
+        return False
+
+    result = docs_service.documents().batchUpdate(
+        documentId=doc_id,
+        body={"requests": requests},
+    ).execute()
+
+    counts = [
+        r.get("replaceAllText", {}).get("occurrencesChanged", 0)
+        for r in result.get("replies", [])
+    ]
+    replaced_map = dict(zip(placeholders_order, counts))
+    found_any = any(v > 0 for v in replaced_map.values())
+
+    if not found_any:
+        _log.debug("CV Docs: секционные плейсхолдеры не найдены, fallback на {{CV_CONTENT}}")
+        return False
+
+    missing_sections = [
+        key for key, text in sections.items() if not (text or "").strip()
+    ]
+    if missing_sections:
+        _log.warning(
+            "CV Docs: секции отсутствуют в markdown и заменены пустым текстом: %s",
+            ", ".join(missing_sections),
+        )
+
+    _log.info("CV Docs: секционные плейсхолдеры обновлены: %s", replaced_map)
+    return True
 
 
 def _parse_inline_formatting(text: str) -> tuple[str, list[dict]]:

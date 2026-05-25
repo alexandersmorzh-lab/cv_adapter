@@ -175,8 +175,14 @@ def _run_linkedin(client: gspread.Client, *, standalone: bool = True):
 
 
 def _run_analyzer(client: gspread.Client, master_cv_variants: list[dict]):
-    """Запускает анализатор вакансий из Search DataBase."""
+    """Запускает анализатор вакансий: Search DataBase + ручной скоринг Tracker."""
     print("\n[1/2] Analyzer: обработка листа 'Search DataBase' и синхронизация с Tracker...", flush=True)
+    model_info = llm.get_effective_model_info("scoring")
+    print(
+        f"    Используется модель для анализа: {model_info['model']} "
+        f"(provider={model_info['provider']}, source={model_info['source']})",
+        flush=True,
+    )
     try:
         analyzed_ok, analyzed_total, added_to_tracker = analyzer.run_analyzer_search_database(
             client=client, master_cv_variants=master_cv_variants
@@ -209,13 +215,41 @@ def _run_analyzer(client: gspread.Client, master_cv_variants: list[dict]):
             )
         print(f"    ℹ Добавлено в Tracker: {added_to_tracker} строк", flush=True)
 
+    # Второй поток: ручные строки в Tracker (Description есть, SummaryScoring пуст)
+    try:
+        manual_ok, manual_total, manual_wrong = analyzer.run_analyzer_tracker_manual_entries(
+            client=client,
+            master_cv_variants=master_cv_variants,
+        )
+    except Exception as e:
+        _fatal(f"Ошибка ручного скоринга Tracker: {e}")
+
+    if manual_total == 0:
+        print(
+            "    ℹ Tracker Manual Scoring: нет строк (Description заполнен, SummaryScoring пуст).",
+            flush=True,
+        )
+    else:
+        if manual_ok + manual_wrong == manual_total:
+            print(
+                f"    ✓ Tracker Manual Scoring: обработано строк: {manual_ok + manual_wrong}/{manual_total} "
+                f"(LLM: {manual_ok}, WrongPhrases: {manual_wrong})",
+                flush=True,
+            )
+        else:
+            print(
+                f"    ⚠ Tracker Manual Scoring: обработано {manual_ok + manual_wrong} из {manual_total}; "
+                "по остальным смотрите сообщения ✗ выше.",
+                flush=True,
+            )
+
 
 def _run_adapter(client: gspread.Client, master_cv_variants: list[dict]):
     """Запускает адаптацию резюме для строк из Tracker."""
     print("\n[2/2] Resume Adapter: создание адаптированных резюме...", flush=True)
     model_info = llm.get_effective_model_info("generation")
     print(
-        f"    Используется модель: {model_info['model']} "
+        f"    Используется модель для адаптации: {model_info['model']} "
         f"(provider={model_info['provider']}, source={model_info['source']})",
         flush=True,
     )

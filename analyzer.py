@@ -809,6 +809,7 @@ def run_analyzer_search_database(*, client, master_cv_variants: list[dict[str, A
                         "additional_scoring": result.additional_scoring,
                         "add_score_reason": result.add_score_reason,
                         "summary_scoring": result.summary_scoring,
+                        "selected_cv": cv_variant.get("name", ""),
                     }
                     
                     # Скопировать другие поля из row_data если есть
@@ -846,4 +847,148 @@ def run_analyzer_search_database(*, client, master_cv_variants: list[dict[str, A
             time.sleep(max(0, int(config.ANALYZER_RATE_LIMIT_SEC)))
 
     return ok, len(rows), added_to_tracker
+
+
+def run_analyzer_tracker_manual_entries(*, client, master_cv_variants: list[dict[str, Any]]) -> tuple[int, int, int]:
+    """
+    Дополнительный поток скоринга для вручную добавленных строк Tracker:
+    - Description заполнен
+    - SummaryScoring пуст
+
+    Возвращает: (успешно обработано, всего строк, отклонено по WrongPhrases)
+    """
+    import sheets
+
+    try:
+        wrong_phrases = sheets.read_wrong_phrases(client)
+    except Exception as e:
+        _log.debug("Analyzer(Tracker manual): не удалось прочитать WrongPhrases: %s", e)
+        wrong_phrases = []
+
+    worksheet, rows, col_indices, headers = sheets.get_tracker_rows_for_manual_scoring(client)
+    if not rows:
+        _log.debug("Analyzer(Tracker manual): нет строк (Description есть, SummaryScoring пуст)")
+        return 0, 0, 0
+
+    additional_filters = sheets.read_additional_filters(client)
+    try:
+        base_system_prompt = sheets.get_base_scoring_system_prompt(client)
+    except Exception as e:
+        _log.warning(
+            "Analyzer(Tracker manual): не удалось прочитать SystemPrompt из листа %s: %s",
+            config.SHEET_BASE_SCORING,
+            e,
+        )
+        base_system_prompt = None
+
+    print(
+        f"\n[1.5/2] Analyzer: ручной скоринг Tracker (Description заполнен, SummaryScoring пуст)...",
+        flush=True,
+    )
+    print(
+        f"      • Строк в Tracker без SummaryScoring: {len(rows)}; "
+        f"забанено фраз: {len(wrong_phrases)}; доп. критериев: {len(additional_filters)}",
+        flush=True,
+    )
+
+    ok = 0
+    wrong_count = 0
+
+    for idx, row in enumerate(rows, start=1):
+        row_num = row["row_num"]
+        description = row["description"]
+        title = row.get("title", "")
+        preview = description[:60].replace("\n", " ")
+        print(f"  [TrackerManual {idx}/{len(rows)}] Строка {row_num}: {preview}...", flush=True)
+
+        if check_stop_requested():
+            print("\n⚠ Получен сигнал остановки.", flush=True)
+            _log.debug("Analyzer(Tracker manual): получен сигнал остановки на строке %s", row_num)
+            break
+
+        try:
+            cv_selection = sheets.select_master_cv_for_title(master_cv_variants, title)
+            cv_variant = cv_selection["variant"]
+            selected_cv_name = str(cv_variant.get("name", "")).strip()
+        except Exception as e:
+            print(f"         ✗ Ошибка выбора Master CV: {e}", flush=True)
+            _log.debug("Analyzer(Tracker manual): ошибка выбора CV для строки %s: %s", row_num, e)
+            continue
+
+        if cv_selection.get("multiple_matches"):
+            _log.warning(
+                "Analyzer(Tracker manual): Title=%r совпал с несколькими масками Master CV; выбрана первая строка %s (%s)",
+                title,
+                cv_variant.get("row_num"),
+                cv_variant.get("name"),
+            )
+        if cv_selection.get("multiple_defaults"):
+            _log.warning(
+                "Analyzer(Tracker manual): найдено несколько fallback-масок '*' в Master CV; выбрана первая строка %s (%s)",
+                cv_variant.get("row_num"),
+                cv_variant.get("name"),
+            )
+
+        if check_wrong_phrases(description, wrong_phrases):
+            try:
+                sheets.write_tracker_manual_scoring_result(
+                    worksheet,
+                    row_num,
+                    col_indices,
+                    base_scoring=0.0,
+                    additional_scoring=0.0,
+                    summary_scoring=0.0,
+                    base_score_reason="Отклонено: найдены запрещенные фразы (WrongPhrases).",
+                    add_score_reason="Отклонено: найдены запрещенные фразы (WrongPhrases).",
+                    wrong_phrases_flag=1,
+                    selected_cv=selected_cv_name,
+                )
+                wrong_count += 1
+                _log.debug("Analyzer(Tracker manual): строка %s отклонена (WrongPhrases)", row_num)
+            except Exception as e:
+                print(f"         ✗ Ошибка записи результата: {e}", flush=True)
+                _log.debug("Analyzer(Tracker manual): ошибка записи для строки %s: %s", row_num, e)
+            continue
+
+        try:
+            base_cv = sheets.get_master_cv_text_for_variant(cv_variant)
+
+            print(f"         → запрос к LLM ({config.LLM_PROVIDER}) для скоринга…", flush=True)
+            result = analyze_job(
+                base_cv=base_cv,
+                job_description=description,
+                additional_filters=additional_filters,
+                base_system_prompt=base_system_prompt,
+            )
+
+            sheets.write_tracker_manual_scoring_result(
+                worksheet,
+                row_num,
+                col_indices,
+                result.base_scoring,
+                result.additional_scoring,
+                result.summary_scoring,
+                base_score_reason=result.base_score_reason,
+                add_score_reason=result.add_score_reason,
+                wrong_phrases_flag=0,
+                selected_cv=selected_cv_name,
+            )
+
+            if config.DEBUG or config.ANALYZER_PRINT_SCORE_BREAKDOWN:
+                _print_scoring_breakdown(result)
+
+            print(
+                f"         ✓ Записано в Tracker: Base={result.base_scoring:.1f}, "
+                f"Add={result.additional_scoring:.1f}, Sum={result.summary_scoring:.1f}",
+                flush=True,
+            )
+            ok += 1
+        except Exception as e:
+            print(f"         ✗ Ошибка анализа: {e}", flush=True)
+            _log.debug("Analyzer(Tracker manual): ошибка анализа для строки %s: %s", row_num, e)
+
+        if idx < len(rows):
+            time.sleep(max(0, int(config.ANALYZER_RATE_LIMIT_SEC)))
+
+    return ok, len(rows), wrong_count
 

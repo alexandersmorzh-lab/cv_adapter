@@ -115,6 +115,22 @@ python main.py adapt
 python main.py all
 ```
 
+`analyze` теперь выполняет два scoring-потока подряд:
+- `Search DataBase`: строки с заполненным `Description` и пустым `SummaryScoring`.
+- `Tracker Manual Scoring`: строки на `Tracker`, где `Description` заполнен, а `SummaryScoring` пуст.
+
+Во втором потоке значения записываются только в существующие колонки скоринга на листе `Tracker`.
+Если каких-то колонок нет, они просто пропускаются без ошибки.
+
+Дополнительно для листа `Tracker` поддерживаются колонки:
+- `DateTime` — время переноса строки из `Search DataBase` в `Tracker` (локальное, формат `YYYY-MM-DD HH:MM:SS`).
+- `Selected_CV` — имя выбранного варианта резюме `Master_CV_*` для текущей вакансии.
+
+Адаптация резюме поддерживает два режима вставки в Google Doc-шаблон:
+- Если в шаблоне есть секционные плейсхолдеры `{{SUMMARY}}`, `{{SKILLS}}`, `{{EXPERIENCE}}`, `{{EDUCATION}}`, `{{LANGUAGES}}`,
+  они заполняются из markdown-ответа LLM по одноимённым заголовкам `## Summary`, `## Skills`, `## Experience`, `## Education`, `## Languages`.
+- Если секционных плейсхолдеров нет, используется fallback через `{{CV_CONTENT}}` (вставка всего markdown-текста).
+
 ---
 
 ## Шаг 1 — Настройка Google OAuth
