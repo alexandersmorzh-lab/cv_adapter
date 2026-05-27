@@ -439,7 +439,7 @@ def read_primary_filter_rows(client) -> list[dict[str, Any]]:
             result.extend(_split_multi_value(_cell(row, col_idx), separators=separators))
         return list(dict.fromkeys(result))
 
-    def parse_weight(row: list[str]) -> float:
+    def parse_weight(row: list[str]) -> tuple[float, bool]:
         for col_name in ("weight", "priority"):
             col_idx = idx.get(col_name, -1)
             if col_idx < 0 or col_idx >= len(row):
@@ -451,8 +451,10 @@ def read_primary_filter_rows(client) -> list[dict[str, Any]]:
                 value = float(raw.replace(",", "."))
             except ValueError:
                 continue
-            return value if value > 0 else 1.0
-        return 1.0
+            if value <= 0:
+                return 0.0, True
+            return value, False
+        return 1.0, False
 
     searches: list[dict[str, Any]] = []
     for row in values[1:]:
@@ -462,6 +464,11 @@ def read_primary_filter_rows(client) -> list[dict[str, Any]]:
         if active not in {"true", "1", "yes", "y", "да"}:
             continue
         if not role:
+            continue
+
+        weight, disabled_by_weight = parse_weight(row)
+        if disabled_by_weight:
+            print(f"      ℹ Позиция '{role}' пропущена: weight=0 (временно отключена).", flush=True)
             continue
 
         date_range = _cell(row, idx.get("date_range")) or "r604800"
@@ -477,7 +484,7 @@ def read_primary_filter_rows(client) -> list[dict[str, Any]]:
                 "keywords": role,
                 "location": location,
                 "date_range": date_range,
-                "weight": parse_weight(row),
+                "weight": weight,
                 "experience_levels": parse_list(row, "experience_levels"),
                 "job_types": parse_list(row, "job_types"),
                 "job_functions": parse_list(row, "job_functions"),
@@ -1437,9 +1444,22 @@ async def _scrape_linkedin_search(
                         except Exception as e:
                             description_error = str(e)
 
+                        # Убираем первую строку, если это заглушка-заголовок LinkedIn
+                        _HEADER_PHRASES = (
+                            "об этой вакансии",
+                            "about the job",
+                            "about this job",
+                            "over deze vacature",
+                            "über diese stelle",
+                        )
+                        _desc_lines = description.splitlines()
+                        if _desc_lines and _desc_lines[0].strip().lower() in _HEADER_PHRASES:
+                            description = "\n".join(_desc_lines[1:]).lstrip()
+
                         _STUB_PHRASES = (
                             "об этой вакансии",
                             "about the job",
+                            "about this job",
                             "over deze vacature",
                             "über diese stelle",
                         )
