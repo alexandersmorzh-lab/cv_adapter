@@ -54,7 +54,7 @@ jobs:
           ditto -c -k --sequesterRsrc --keepParent release/CVAdapter-macOS release/CVAdapter-macOS.zip
 
       - name: Upload workflow artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: CVAdapter-macOS
           path: release/CVAdapter-macOS.zip
@@ -62,11 +62,20 @@ jobs:
 
       - name: Publish GitHub Release asset
         if: ${{ github.event.inputs.release_tag != '' }}
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.event.inputs.release_tag }}
-          name: ${{ github.event.inputs.release_name || github.event.inputs.release_tag }}
-          files: release/CVAdapter-macOS.zip
-          generate_release_notes: true
-          draft: false
-          prerelease: false
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ github.event.inputs.release_tag }}"
+          name="${{ github.event.inputs.release_name }}"
+          if [ -z "$name" ]; then
+            name="$tag"
+          fi
+
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" \
+              --title "$name" \
+              --generate-notes
+          fi
+
+          gh release upload "$tag" release/CVAdapter-macOS.zip --clobber
