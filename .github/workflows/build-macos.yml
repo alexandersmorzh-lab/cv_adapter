@@ -48,7 +48,6 @@ jobs:
           mkdir -p release/CVAdapter-macOS
           cp -R dist/CVAdapter.app release/CVAdapter-macOS/
           cp .env.example release/CVAdapter-macOS/.env.example
-          cp system_prompt.txt release/CVAdapter-macOS/system_prompt.txt
           cp README.md release/CVAdapter-macOS/README.md
 
           if [ -f docs/MACOS_SETUP.md ]; then

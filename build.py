@@ -92,7 +92,6 @@ def build_exe(platform="auto"):
         # Добавляем необходимые файлы
         data_files = [
             (".env.example", "."),      # шаблон конфига
-            ("system_prompt.txt", "."), # системный промпт
             ("client_secret.json", "."), # OAuth credentials (шаблон)
             (build_info_path, "."),
         ]
@@ -156,10 +155,10 @@ def build_exe(platform="auto"):
                 print(f"  Размер: {file_size:.1f} МБ")
                 if ext == ".app":
                     print("  При первом запуске macOS-версия сама создаст ~/Library/Application Support/CVAdapter/")
-                    print("  Если получится, она сама скопирует туда .env/.env.example и system_prompt.txt")
+                    print("  Если получится, она сама скопирует туда .env/.env.example")
                     print("  Если client_secret.json не скопируется автоматически, положите его в эту папку вручную")
                 else:
-                    print("  Положите рядом с ним: .env, system_prompt.txt и client_secret.json")
+                    print("  Положите рядом с ним: .env и client_secret.json")
                 print("  Запустите двойным кликом!")
             else:
                 print(f"\n⚠ ОШИБКА: Файл {output_name} не был обновлён!")
