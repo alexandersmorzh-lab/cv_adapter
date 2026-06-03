@@ -1,0 +1,53 @@
+{{NAME}} | {{EMAIL}} | {{PHONE}} | {{LINKEDIN}}
+
+## Summary
+Product Owner with **5+ years** of experience delivering B2B and B2C SaaS solutions in fintech, AI‑driven data platforms, and operational tools. Expert at turning ambiguous business problems into structured product requirements, designing system logic and user flows, and aligning engineering delivery with strategic goals. Proven track record of reducing rework, improving operational efficiency, and scaling product complexity while maintaining high stakeholder satisfaction.
+
+## Skills
+• **Core Expertise:** Product Ownership, Requirement Structuring, Stakeholder Management, Compliance‑Driven Product Development  
+• **Tools & Technologies:** **SQL**, **Python**, **REST API**, **Jira**, **Confluence**, **Figma**, **Power BI**, **SAP BI**, **Azure Databricks**, **Zapier**, **N8N**  
+• **Methodologies:** **Agile (Scrum/Kanban)**, **Waterfall**, **BPMN**, **UML**, **Lean Six Sigma**, **OKRs**, **JTBD**, **A/B Testing**
+
+## Experience
+
+### **Papai Agency**
+**Product Owner** | Amsterdam (Remote) | 07/2025 – Present  
+• **Reduced clarification cycles by ~30%** by introducing structured product artifacts and clearer hand‑over processes.  
+• **Improved operational efficiency** by redesigning fragmented workflows into scalable, automated processes across fintech exchange, e‑commerce, and AI data platforms.  
+• Defined and tracked **KPIs** and operational metrics, driving data‑backed decisions that enhanced feature impact assessment.  
+• Designed end‑to‑end **API‑centric workflows** and validation logic, supporting multi‑system integration for financial and marketing automation.  
+• Coordinated cross‑functional teams (business, engineering, end‑users) to align priorities, ensuring timely delivery of three concurrent client projects.  
+
+### **Tunell**
+**Product Owner** | Riga, Latvia | 02/2023 – 05/2025  
+• **Enabled 50% operational scale‑up** through process redesign and standardization of transaction‑heavy platform workflows.  
+• **Reduced onboarding time by 40%** within three months by automating key steps and optimizing user flows.  
+• Delivered a **0‑to‑1 analytical data platform**, defining KPIs and reporting logic that supported client acquisition and growth.  
+• Managed integration of new **global payment methods**, aligning regulatory, usability, and compliance requirements.  
+• Led cross‑functional delivery from discovery to rollout, improving customer retention by **5%** via journey analysis and data‑driven enhancements.  
+
+### **Gazprom Neft**
+**Business Analyst** | Saint Petersburg, Russia | 10/2021 – 01/2023  
+• **Cut time‑to‑launch** for internal initiatives from 2 months to 3 weeks by streamlining requirement definition and process structuring.  
+• Defined functional specs, APIs, and lifecycle logic for a **large‑scale data platform** consolidating financial and operational data across 10+ business units.  
+• Established KPI definitions and reporting logic, improving adherence to organizational standards by **~20%**.  
+• Designed **transaction‑level workflow states** and validation rules for a bulk payments platform, ensuring regulatory compliance and operational reliability.  
+
+### **Eduson Academy**
+**Business Analyst** | Saint Petersburg, Russia | 01/2021 – 09/2021  
+• Translated business needs into functional specifications and user flows, improving alignment between product, marketing, and engineering teams.  
+• Conducted gap analysis linking user behavior (Looker) to conversion targets, informing product roadmap decisions.  
+• Facilitated early‑stage experiments, **reducing time‑to‑validation by 30%** through rapid prototyping and pilot iterations.  
+
+## Education
+### **Master of Science – Management**
+**Saint‑Petersburg State University – Graduate School of Management** – Saint Petersburg, Russia | 09/2021 – 09/2022  
+• Selected for an elite CEMS MiM cohort (15 participants)  
+
+### **Bachelor of Science – Social Informatics**
+**National Research University Higher School of Economics** – Saint Petersburg, Russia | 09/2017 – 07/2021  
+
+## Languages
+• English (professional)  
+• Russian (native)  
+• Dutch (basic)

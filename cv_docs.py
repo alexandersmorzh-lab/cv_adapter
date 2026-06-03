@@ -47,6 +47,43 @@ _APPLICANT_PLACEHOLDER_DESCRIPTIONS: dict[str, str] = {
     "{{LINKEDIN}}": "applicant LinkedIn URL",
 }
 
+_JOB_PLACEHOLDERS: dict[str, str] = {
+    "{{Role as in JD}}": "job_title",
+}
+
+_ROLE_CANONICAL_PATTERNS: list[tuple[str, str]] = [
+    (r"\bprincipal\s+product\s+owner\b", "Principal Product Owner"),
+    (r"\bsenior\s+product\s+owner\b", "Senior Product Owner"),
+    (r"\bproduct\s+owner\b", "Product Owner"),
+    (r"\bproduct\s+manager\b", "Product Manager"),
+    (r"\bpmo\b", "PMO"),
+]
+
+
+def _normalize_role_from_job_title(job_title: str) -> str:
+    """Возвращает очищенное название должности для шаблонного плейсхолдера.
+
+    Убирает служебные хвосты (with verification, скобки и т.п.) и
+    приводит строку к канонической роли.
+    """
+    title = (job_title or "").strip()
+    if not title:
+        return ""
+
+    normalized = title.replace("\u2013", "-").replace("\u2014", "-")
+    normalized = re.sub(r"\s*\(.*?\)", "", normalized)
+    normalized = re.sub(r"\bwith\s+verification\b", "", normalized, flags=re.IGNORECASE)
+    normalized = re.sub(r"\s+", " ", normalized).strip(" -,")
+
+    for pattern, canonical in _ROLE_CANONICAL_PATTERNS:
+        if re.search(pattern, normalized, flags=re.IGNORECASE):
+            return canonical
+
+    # Fallback: берём первый сегмент до типичных уточнений.
+    simplified = re.split(r"\s+-\s+|\s+for\s+|\s+in\s+|,", normalized, maxsplit=1, flags=re.IGNORECASE)[0]
+    simplified = re.sub(r"\s+", " ", simplified).strip(" -,")
+    return simplified or normalized
+
 
 def _build_applicant_instruction(applicant: dict) -> str:
     """Строит инструкцию для LLM только для полей, у которых есть значение.
@@ -270,6 +307,15 @@ def create_adapted_cv_document(
         if has_applicant_data:
             _replace_applicant_placeholders(new_doc_id, effective_applicant)
 
+        # 5.1 Заменяем плейсхолдеры вакансии (без участия LLM)
+        _replace_job_placeholders(
+            new_doc_id,
+            {
+                "job_title": _normalize_role_from_job_title(job_title),
+                "company_name": company_name,
+            },
+        )
+
         # 6. Возвращаем ссылку и сырой текст LLM
         doc_url = sheets.get_doc_link(new_doc_id)
         _log.info("CV Docs: ✓ резюме создано: %s", doc_url)
@@ -376,33 +422,28 @@ def _replace_section_placeholders_in_doc(doc_id: str, markdown_text: str) -> boo
 
     sections = _extract_markdown_sections(markdown_text)
 
-    requests: list[dict[str, Any]] = []
-    placeholders_order: list[str] = []
+    replaced_map: dict[str, int] = {}
     for section_key, placeholder in _SECTION_PLACEHOLDERS.items():
         value = sections.get(section_key, "")
-        requests.append(
-            {
-                "replaceAllText": {
-                    "containsText": {"text": placeholder, "matchCase": True},
-                    "replaceText": value,
-                }
-            }
-        )
-        placeholders_order.append(placeholder)
+        replaced_count = 0
+        # Обрабатываем все вхождения плейсхолдера по одному, чтобы
+        # применить markdown-стили к каждой вставке независимо.
+        while _replace_markdown_placeholder_in_doc(
+            doc_id=doc_id,
+            placeholder=placeholder,
+            markdown_text=value,
+            docs_service=docs_service,
+        ):
+            replaced_count += 1
+            if replaced_count >= 100:
+                _log.warning(
+                    "CV Docs: слишком много повторов плейсхолдера %s (>%d), остановка цикла",
+                    placeholder,
+                    replaced_count,
+                )
+                break
+        replaced_map[placeholder] = replaced_count
 
-    if not requests:
-        return False
-
-    result = docs_service.documents().batchUpdate(
-        documentId=doc_id,
-        body={"requests": requests},
-    ).execute()
-
-    counts = [
-        r.get("replaceAllText", {}).get("occurrencesChanged", 0)
-        for r in result.get("replies", [])
-    ]
-    replaced_map = dict(zip(placeholders_order, counts))
     found_any = any(v > 0 for v in replaced_map.values())
 
     if not found_any:
@@ -419,6 +460,61 @@ def _replace_section_placeholders_in_doc(doc_id: str, markdown_text: str) -> boo
         )
 
     _log.info("CV Docs: секционные плейсхолдеры обновлены: %s", replaced_map)
+    return True
+
+
+def _replace_markdown_placeholder_in_doc(
+    *,
+    doc_id: str,
+    placeholder: str,
+    markdown_text: str,
+    docs_service=None,
+) -> bool:
+    """Заменяет одно вхождение плейсхолдера markdown-контентом с форматированием.
+
+    Возвращает True, если вхождение найдено и заменено.
+    """
+    if docs_service is None:
+        docs_service = sheets.get_docs_service()
+    if not docs_service:
+        raise RuntimeError("Google Docs API не инициализирован (нет credentials)")
+
+    doc = docs_service.documents().get(documentId=doc_id).execute()
+    placeholder_index = _find_placeholder_index(doc, placeholder)
+    if placeholder_index is None:
+        return False
+
+    paragraphs = _parse_markdown_to_paragraphs(markdown_text or "")
+    plain_text = "\n".join(p["text"] for p in paragraphs)
+
+    requests: list[dict[str, Any]] = [
+        {
+            "deleteContentRange": {
+                "range": {
+                    "startIndex": placeholder_index,
+                    "endIndex": placeholder_index + len(placeholder),
+                }
+            }
+        }
+    ]
+    if plain_text:
+        requests.append(
+            {
+                "insertText": {
+                    "location": {"index": placeholder_index},
+                    "text": plain_text,
+                }
+            }
+        )
+
+    docs_service.documents().batchUpdate(
+        documentId=doc_id,
+        body={"requests": requests},
+    ).execute()
+
+    if plain_text:
+        _apply_paragraph_styles(doc_id, docs_service, paragraphs, start_index=placeholder_index)
+
     return True
 
 
@@ -572,15 +668,15 @@ def _apply_paragraph_styles(
         # endIndex для API: включает \n-разделитель для не-последних параграфов
         para_end = para_start + text_len + (0 if is_last else 1)
 
-        # Named style (NORMAL_TEXT — стиль по умолчанию, не нужно задавать явно)
-        if para["style"] != "NORMAL_TEXT":
-            style_requests.append({
-                "updateParagraphStyle": {
-                    "range": {"startIndex": para_start, "endIndex": para_end},
-                    "paragraphStyle": {"namedStyleType": para["style"]},
-                    "fields": "namedStyleType",
-                }
-            })
+        # Всегда задаём named style явно, чтобы не наследовать стиль
+        # плейсхолдера (например, BULLET/LIST_PARAGRAPH) на весь вставленный блок.
+        style_requests.append({
+            "updateParagraphStyle": {
+                "range": {"startIndex": para_start, "endIndex": para_end},
+                "paragraphStyle": {"namedStyleType": para["style"]},
+                "fields": "namedStyleType",
+            }
+        })
 
         # Bullet list
         if para.get("bullet") and para["text"].strip():
@@ -663,6 +759,48 @@ def _replace_applicant_placeholders(doc_id: str, applicant: dict) -> None:
     _log.debug(
         "CV Docs: заменено плейсхолдеров реквизитов: %s",
         dict(zip(_APPLICANT_PLACEHOLDERS.keys(), counts)),
+    )
+
+
+def _replace_job_placeholders(doc_id: str, job_context: dict) -> None:
+    """Заменяет плейсхолдеры вакансии реальными значениями.
+
+    Плейсхолдеры подставляются уже после генерации резюме, поэтому
+    не требуют изменения системного промпта LLM.
+    """
+    docs_service = sheets.get_docs_service()
+    if not docs_service:
+        raise RuntimeError("Google Docs API не инициализирован")
+
+    requests = []
+    for placeholder, field in _JOB_PLACEHOLDERS.items():
+        value = (job_context.get(field) or "").strip()
+        if not value:
+            continue
+        requests.append(
+            {
+                "replaceAllText": {
+                    "containsText": {"text": placeholder, "matchCase": True},
+                    "replaceText": value,
+                }
+            }
+        )
+
+    if not requests:
+        return
+
+    result = docs_service.documents().batchUpdate(
+        documentId=doc_id,
+        body={"requests": requests},
+    ).execute()
+
+    counts = [
+        r.get("replaceAllText", {}).get("occurrencesChanged", 0)
+        for r in result.get("replies", [])
+    ]
+    _log.debug(
+        "CV Docs: заменено плейсхолдеров вакансии: %s",
+        dict(zip(_JOB_PLACEHOLDERS.keys(), counts)),
     )
 
 
